@@ -15,13 +15,16 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-size: cover; background-position: center;
             z-index: 1; transition: background-image 3s ease-in-out;
-            /* Hardcoded image removed so the randomizer can take over immediately */
         }
 
+        /* Updated Container for Left/Right Split */
         .container {
             position: relative; z-index: 2;
-            display: flex; flex-direction: column;
-            justify-content: center; height: 100vh; padding-left: 60px;
+            display: flex; flex-direction: row; 
+            justify-content: space-between; 
+            align-items: center; 
+            height: 100vh; padding: 0 8vw; 
+            box-sizing: border-box;
         }
 
         .glass-card {
@@ -32,35 +35,79 @@
             width: fit-content; box-shadow: 0 15px 45px rgba(0,0,0,0.6);
         }
 
+        /* Digital Clock Styles */
         #clock { font-size: 8rem; font-weight: 200; margin: 0; line-height: 1; letter-spacing: -2px; }
         #date { font-size: 1.6rem; opacity: 0.8; margin: 20px 0 35px 0; font-weight: 300; }
         
-        /* Updated Weather Styles */
+        /* Weather Styles */
         .weather-info { border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 30px; }
         .temp-row { display: flex; align-items: center; gap: 15px; margin: 15px 0; }
         #weather-icon { font-size: 3.2rem; line-height: 1; }
         #temp { font-size: 4rem; font-weight: 300; margin: 0; line-height: 1; }
         .forecast-text { font-size: 1.2rem; opacity: 0.8; margin-bottom: 5px; }
+
+        /* Analog Clock Styles */
+        .analog-clock {
+            width: 320px; height: 320px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 15px 45px rgba(0,0,0,0.6);
+            position: relative;
+            display: flex; justify-content: center; align-items: center;
+        }
+        
+        .clock-number {
+            position: absolute;
+            width: 100%; height: 100%;
+            text-align: center;
+            padding-top: 15px;
+            font-size: 1.8rem; font-weight: 500;
+            box-sizing: border-box;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .hand {
+            position: absolute;
+            bottom: 50%; left: 50%;
+            transform-origin: bottom;
+            border-radius: 10px; z-index: 10;
+        }
+        .hour-hand { width: 8px; height: 80px; margin-left: -4px; background: #fff; }
+        .min-hand { width: 4px; height: 120px; margin-left: -2px; background: #ddd; }
+        .sec-hand { width: 2px; height: 130px; margin-left: -1px; background: #ff4d4d; }
+        .center-dot {
+            position: absolute; width: 16px; height: 16px; 
+            background: #fff; border-radius: 50%; z-index: 11;
+        }
     </style>
 </head>
 <body>
     <div id="bg"></div>
     <div class="container">
+        
         <div class="glass-card">
             <div id="clock">00:00</div>
             <div id="date">Loading...</div>
             <div class="weather-info">
                 <div style="opacity: 0.6; font-size: 1rem; letter-spacing: 2px; text-transform: uppercase;">Ramat Gan</div>
-                
                 <div class="temp-row">
                     <div id="weather-icon">--</div>
                     <div id="temp">--°C</div>
                 </div>
                 <div id="today-hl" class="forecast-text">Today: --° / --°C</div>
-                <div id="weather-desc" class="forecast-text" style="opacity: 0.6;">Tomorrow: --° / --°C</div>
-
+                <div id="weather-desc" class="forecast-text" style="opacity: 0.6;">Tomorrow: -- / --C</div>
             </div>
         </div>
+
+        <div class="analog-clock" id="analog-clock">
+            <div class="hand hour-hand" id="hour-hand"></div>
+            <div class="hand min-hand" id="min-hand"></div>
+            <div class="hand sec-hand" id="sec-hand"></div>
+            <div class="center-dot"></div>
+        </div>
+
     </div>
 
     <script>
@@ -82,33 +129,64 @@
         ];
 
         // --- 2. RANDOMIZED ROTATION LOGIC ---
-        // Pick a random starting image
         let currentIndex = Math.floor(Math.random() * images.length);
         const bg = document.getElementById('bg');
-        
-        // Immediately load the random starting image
         bg.style.backgroundImage = `url('${images[currentIndex]}?q=80&w=2500&auto=format&fit=crop')`;
 
         function rotateBackground() {
             currentIndex = (currentIndex + 1) % images.length;
             const nextUrl = images[currentIndex] + "?q=80&w=2500&auto=format&fit=crop";
-            
             const img = new Image();
             img.src = nextUrl;
             img.onload = () => { bg.style.backgroundImage = `url('${nextUrl}')`; };
         }
         setInterval(rotateBackground, 600000); // 10 mins
 
-        // --- 3. CLOCK & DATE ---
+        // --- 3. CLOCKS LOGIC ---
+        // Setup Analog Numbers 1-12
+        function createAnalogNumbers() {
+            const clockFace = document.getElementById('analog-clock');
+            for (let i = 1; i <= 12; i++) {
+                const numBox = document.createElement('div');
+                numBox.className = 'clock-number';
+                numBox.style.transform = `rotate(${i * 30}deg)`;
+                
+                // Inner div counter-rotates so numbers stay upright
+                const num = document.createElement('div');
+                num.style.transform = `rotate(-${i * 30}deg)`;
+                num.innerText = i;
+                
+                numBox.appendChild(num);
+                clockFace.appendChild(numBox);
+            }
+        }
+        createAnalogNumbers();
+
+        // Update Both Clocks
         function updateTime() {
             const now = new Date();
+            
+            // Digital Update
             document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
             document.getElementById('date').innerText = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+
+            // Analog Update
+            const seconds = now.getSeconds();
+            const minutes = now.getMinutes();
+            const hours = now.getHours();
+
+            const secDegree = seconds * 6;
+            const minDegree = minutes * 6 + seconds * 0.1; // Smooth minute movement
+            const hourDegree = (hours % 12) * 30 + minutes * 0.5; // Smooth hour movement
+
+            document.getElementById('sec-hand').style.transform = `rotate(${secDegree}deg)`;
+            document.getElementById('min-hand').style.transform = `rotate(${minDegree}deg)`;
+            document.getElementById('hour-hand').style.transform = `rotate(${hourDegree}deg)`;
         }
         setInterval(updateTime, 1000);
         updateTime();
 
-        // --- 4. WEATHER (UPDATED FOR ICONS & HIGH/LOW) ---
+        // --- 4. WEATHER LOGIC ---
         async function getWeather() {
             try {
                 const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=32.0684&longitude=34.8248&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto');
@@ -116,14 +194,12 @@
                 
                 const currentTemp = Math.round(data.current_weather.temperature);
                 const code = data.current_weather.weathercode;
-                
                 const todayHigh = Math.round(data.daily.temperature_2m_max[0]);
                 const todayLow = Math.round(data.daily.temperature_2m_min[0]);
-                
                 const tomHigh = Math.round(data.daily.temperature_2m_max[1]);
                 const tomLow = Math.round(data.daily.temperature_2m_min[1]);
 
-                let icon = "☀️"; // Default to clear
+                let icon = "☀️"; 
                 if (code >= 1 && code <= 3) icon = "☁️"; 
                 else if (code >= 45 && code <= 48) icon = "🌫️"; 
                 else if (code >= 51 && code <= 67) icon = "🌧️"; 
@@ -133,8 +209,7 @@
                 document.getElementById('weather-icon').innerText = icon;
                 document.getElementById('temp').innerText = currentTemp + '°C';
                 document.getElementById('today-hl').innerText = `Today: ${todayLow} - ${todayHigh}°C`;
-                document.getElementById('weather-desc').innerText = `Tomorrow: ${tomLow} - ${tomHigh}°C`;
-                
+                document.getElementById('weather-desc').innerText = `Tomorrow: ${tomLow}-${tomHigh}C`;
             } catch (e) { 
                 document.getElementById('weather-desc').innerText = "Weather unavailable";
             }
