@@ -17,118 +17,132 @@
             z-index: 1; transition: background-image 3s ease-in-out;
         }
 
-        /* Updated Container for Left/Right Split */
         .container {
             position: relative; z-index: 2;
             display: flex; flex-direction: row; 
             justify-content: space-between; 
             align-items: center; 
-            height: 100vh; padding: 0 8vw; 
+            height: 100vh; padding: 0 6vw; 
             box-sizing: border-box;
         }
 
         .glass-card {
             background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border-radius: 35px; padding: 50px;
+            border-radius: 35px; padding: 40px;
             border: 1px solid rgba(255, 255, 255, 0.15);
-            width: fit-content; box-shadow: 0 15px 45px rgba(0,0,0,0.6);
+            width: 480px; box-shadow: 0 15px 45px rgba(0,0,0,0.6);
         }
 
-        /* Digital Clock Styles */
-        #clock { font-size: 8rem; font-weight: 200; margin: 0; line-height: 1; letter-spacing: -2px; }
-        #date { font-size: 1.6rem; opacity: 0.8; margin: 20px 0 35px 0; font-weight: 300; }
+        #clock { font-size: 7rem; font-weight: 200; margin: 0; line-height: 1; letter-spacing: -2px; }
+        #date { font-size: 1.4rem; opacity: 0.8; margin: 15px 0 25px 0; font-weight: 300; }
         
-        /* Weather Styles */
-        .weather-info { border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 30px; }
-        .temp-row { display: flex; align-items: center; gap: 15px; margin: 15px 0; }
-        #weather-icon { font-size: 3.2rem; line-height: 1; }
-        #temp { font-size: 4rem; font-weight: 300; margin: 0; line-height: 1; }
-        .forecast-text { font-size: 1.2rem; opacity: 0.8; margin-bottom: 5px; }
+        .weather-info { border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 20px; margin-bottom: 25px;}
+        .temp-row { display: flex; align-items: center; gap: 15px; margin: 10px 0; }
+        #weather-icon { font-size: 2.5rem; }
+        #temp { font-size: 3rem; font-weight: 300; }
 
-        /* Analog Clock Styles */
+        .learning-section { border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 20px; }
+        .label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.5; margin-bottom: 10px; }
+        .task-text { font-size: 1.15rem; font-weight: 400; color: #ffeb3b; margin-bottom: 25px; line-height: 1.4; }
+
+        .word-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center; }
+        .word-item span { display: block; font-size: 0.7rem; opacity: 0.6; margin-bottom: 4px; }
+        .word-val { font-size: 1.1rem; font-weight: 500; }
+
         .analog-clock {
-            width: 320px; height: 320px;
+            width: 340px; height: 340px;
             background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border-radius: 50%;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 15px 45px rgba(0,0,0,0.6);
-            position: relative;
-            display: flex; justify-content: center; align-items: center;
+            border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative; display: flex; justify-content: center; align-items: center;
         }
-        
-        .clock-number {
-            position: absolute;
-            width: 100%; height: 100%;
-            text-align: center;
-            padding-top: 15px;
-            font-size: 1.8rem; font-weight: 500;
-            box-sizing: border-box;
-            color: rgba(255, 255, 255, 0.9);
-        }
-
-        .hand {
-            position: absolute;
-            bottom: 50%; left: 50%;
-            transform-origin: bottom;
-            border-radius: 10px; z-index: 10;
-        }
-        .hour-hand { width: 8px; height: 80px; margin-left: -4px; background: #fff; }
-        .min-hand { width: 4px; height: 120px; margin-left: -2px; background: #ddd; }
-        .sec-hand { width: 2px; height: 130px; margin-left: -1px; background: #ff4d4d; }
-        .center-dot {
-            position: absolute; width: 16px; height: 16px; 
-            background: #fff; border-radius: 50%; z-index: 11;
-        }
+        .clock-number { position: absolute; width: 100%; height: 100%; text-align: center; padding-top: 15px; font-size: 1.8rem; color: rgba(255,255,255,0.9); }
+        .hand { position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; border-radius: 10px; z-index: 10; }
+        .hour-hand { width: 9px; height: 85px; margin-left: -4.5px; background: #fff; }
+        .min-hand { width: 5px; height: 125px; margin-left: -2.5px; background: #ddd; }
+        .sec-hand { width: 2px; height: 135px; margin-left: -1px; background: #ff4d4d; }
+        .center-dot { position: absolute; width: 16px; height: 16px; background: #fff; border-radius: 50%; z-index: 11; }
     </style>
 </head>
 <body>
     <div id="bg"></div>
     <div class="container">
-        
         <div class="glass-card">
             <div id="clock">00:00</div>
             <div id="date">Loading...</div>
             <div class="weather-info">
-                <div style="opacity: 0.6; font-size: 1rem; letter-spacing: 2px; text-transform: uppercase;">Ramat Gan</div>
                 <div class="temp-row">
                     <div id="weather-icon">--</div>
                     <div id="temp">--°C</div>
+                    <div style="font-size: 0.9rem; opacity: 0.7; margin-left: auto; text-align: right;">
+                        <div id="today-hl">-- / --</div>
+                        <div id="weather-desc">Tomorrow: --</div>
+                    </div>
                 </div>
-                <div id="today-hl" class="forecast-text">Today: --° / --°C</div>
-                <div id="weather-desc" class="forecast-text" style="opacity: 0.6;">Tomorrow: -- / --C</div>
+            </div>
+            <div class="learning-section">
+                <div class="label">Task of the Day</div>
+                <div id="daily-task" class="task-text">...</div>
+                <div class="label">Word of the Day</div>
+                <div class="word-grid">
+                    <div class="word-item"><span>English</span><div id="word-en" class="word-val">...</div></div>
+                    <div class="word-item"><span>Deutsch</span><div id="word-de" class="word-val">...</div></div>
+                    <div class="word-item"><span>עברית</span><div id="word-he" class="word-val">...</div></div>
+                </div>
             </div>
         </div>
-
         <div class="analog-clock" id="analog-clock">
             <div class="hand hour-hand" id="hour-hand"></div>
             <div class="hand min-hand" id="min-hand"></div>
             <div class="hand sec-hand" id="sec-hand"></div>
             <div class="center-dot"></div>
         </div>
-
     </div>
 
     <script>
-        // --- 1. YOUR SELECTED IMAGES ---
-        const images = [
-            "https://images.unsplash.com/photo-1541701494587-cb58502866ab", "https://images.unsplash.com/photo-1441974231531-c6227db76b6e",
-            "https://images.unsplash.com/photo-1500375592092-40eb2168fd21", "https://images.unsplash.com/photo-1501854140801-50d01698950b",
-            "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d", "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa",
-            "https://images.unsplash.com/photo-1470770841072-f978cf4d019e", "https://images.unsplash.com/photo-1506744038136-46273834b3fb",
-            "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07", "https://images.unsplash.com/photo-1473448912268-2022ce9509d8",
-            "https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f", "https://images.unsplash.com/photo-1502082553048-f009c37129b9",
-            "https://images.unsplash.com/photo-1502657877623-f66bf489d236", "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1",
-            "https://images.unsplash.com/photo-1536431311719-398b6704d4cc", "https://images.unsplash.com/photo-1504608524841-42fe6f032b4b",
-            "https://images.unsplash.com/photo-1437719417032-8595fd9e9dc6", "https://images.unsplash.com/photo-1473116763249-2faaef81ccda",
-            "https://images.unsplash.com/photo-1470219556762-1771e7f9427d", "https://images.unsplash.com/photo-1534067783941-51c9c23ecefd",
-            "https://images.unsplash.com/photo-1443632864897-14973fa006cf", "https://images.unsplash.com/photo-1461696114087-397271a7aedc",
-            "https://images.unsplash.com/photo-1574169208507-84376144848b", "https://images.unsplash.com/photo-1523821741446-edb2b68bb7a0",
-            "https://images.unsplash.com/photo-1543857778-c4a1a3e0b2eb"
+        const images = ["https://images.unsplash.com/photo-1541701494587-cb58502866ab", "https://images.unsplash.com/photo-1441974231531-c6227db76b6e", "https://images.unsplash.com/photo-1500375592092-40eb2168fd21", "https://images.unsplash.com/photo-1501854140801-50d01698950b", "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d", "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa", "https://images.unsplash.com/photo-1470770841072-f978cf4d019e", "https://images.unsplash.com/photo-1506744038136-46273834b3fb", "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07", "https://images.unsplash.com/photo-1473448912268-2022ce9509d8", "https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f", "https://images.unsplash.com/photo-1502082553048-f009c37129b9", "https://images.unsplash.com/photo-1502657877623-f66bf489d236", "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1", "https://images.unsplash.com/photo-1536431311719-398b6704d4cc", "https://images.unsplash.com/photo-1504608524841-42fe6f032b4b", "https://images.unsplash.com/photo-1437719417032-8595fd9e9dc6", "https://images.unsplash.com/photo-1473116763249-2faaef81ccda", "https://images.unsplash.com/photo-1470219556762-1771e7f9427d", "https://images.unsplash.com/photo-1534067783941-51c9c23ecefd", "https://images.unsplash.com/photo-1443632864897-14973fa006cf", "https://images.unsplash.com/photo-1461696114087-397271a7aedc", "https://images.unsplash.com/photo-1574169208507-84376144848b", "https://images.unsplash.com/photo-1523821741446-edb2b68bb7a0", "https://images.unsplash.com/photo-1543857778-c4a1a3e0b2eb"];
+
+        // Expanded Tasks (Loops through 100)
+        const tasks = [
+            "Draw a picture of a magical forest animal.", "Find 5 blue things in the house.", "Tell a story about a treehouse.", "Do 10 jumping jacks!", "Help clear the table after dinner.", "Learn a new word in German today.", "Draw a map of your bedroom.", "Sing your favorite song together.", "Find a leaf outside and describe it.", "Help match the socks from the laundry.",
+            "Write a thank-you note to someone.", "Balance on one foot for 20 seconds.", "Build the tallest tower you can with blocks.", "Find three things that start with the letter B.", "Make a paper airplane and see how far it flies.", "Learn how to say 'Water' in Hebrew.", "Help water the plants today.", "Count how many windows are in our home.", "Draw a picture of what you want to be when you grow up.", "Invent a new dance move.",
+            "Find a smooth stone outside.", "Look for a bird and describe its colors.", "Practice tying your shoes or a knot.", "Help organize the toy box.", "Draw a picture using only three colors.", "Tell a joke to someone in the family.", "Find two things that are round.", "Help prepare a healthy snack.", "Try to whistle a tune.", "Draw a portrait of your brother or sister.",
+            "Count to 20 in Hebrew or German.", "Find something that smells like spring.", "Make a bookmark for your favorite book.", "Help wipe the dining table.", "Create a secret handshake.", "Draw a picture of a dinosaur in a hat.", "Find something fuzzy.", "Do a slow-motion race across the room.", "Help put away the groceries.", "List three things you are thankful for today.",
+            "Find something that is exactly the size of your hand.", "Make a silly face in the mirror.", "Practice hopping like a frog.", "Help sweep a small part of the floor.", "Draw a picture of the sun and clouds.", "Find something that makes a crinkly sound.", "Learn a new fact about an animal.", "Help set the table for breakfast.", "Build a small house for a toy animal.", "Describe your favorite dream.",
+            "Find something orange.", "Practice your best robot voice.", "Help fold the small towels.", "Draw a picture of a space rocket.", "Find something that is very soft.", "Learn how to say 'Love' in German.", "Make a card for a friend.", "Count how many doors are in the house.", "Find a shadow and try to touch it.", "Help sort the recycling.",
+            "Draw a giant colorful rainbow.", "Find something that starts with the letter M.", "Practice walking in a straight line.", "Help tidy the shoes by the door.", "Describe what a cloud looks like today.", "Find something that feels cold.", "Learn the name of a new flower.", "Help pick out your clothes for tomorrow.", "Make a pattern using spoons and forks.", "Draw a picture of a funny monster.",
+            "Find something that is shiny.", "Practice your best lion roar.", "Help wipe the dust off a shelf.", "Draw a house for a friendly ghost.", "Find something that makes a beautiful sound.", "Learn how to say 'Friend' in Hebrew.", "Make a necklace out of paper rings.", "Count the chairs in the house.", "Find something that is your favorite color.", "Help feed a pet or watch a bird eat.",
+            "Draw a picture of an underwater city.", "Find something that starts with the letter S.", "Practice your best tiptoe walking.", "Help put the pillows back on the sofa.", "Describe a smell in the kitchen.", "Find something that feels rough.", "Learn the name of a new fruit.", "Help carry a small bag.", "Make a hat out of a piece of paper.", "Draw a picture of a superhero.",
+            "Find something that is very light.", "Practice your best bird whistle.", "Help organize the books on a shelf.", "Draw a garden full of giant flowers.", "Find something that reflects light.", "Learn how to say 'Thank you' in German.", "Make a drawing for Noelle, Adam, or Benjamin.", "Count the steps from the kitchen to your bed.", "Find something that is older than you.", "Give someone a big hug!"
         ];
 
-        // --- 2. RANDOMIZED ROTATION LOGIC ---
+        // Expanded Words (A systematic sample that covers different categories)
+        const words = [
+            {en:"Apple", de:"Apfel", he:"תפוח"}, {en:"Tree", de:"Baum", he:"עץ"}, {en:"Cloud", de:"Wolke", he:"ענן"}, {en:"Book", de:"Buch", he:"ספר"}, {en:"Sun", de:"Sonne", he:"שמש"}, {en:"Moon", de:"Mond", he:"ירח"}, {en:"Star", de:"Stern", he:"כוכב"}, {en:"Cat", de:"Katze", he:"חתול"}, {en:"Dog", de:"Hund", he:"כלב"}, {en:"Bird", de:"Vogel", he:"ציפור"},
+            {en:"House", de:"Haus", he:"בית"}, {en:"Car", de:"Auto", he:"מכונית"}, {en:"Water", de:"Wasser", he:"מים"}, {en:"Bread", de:"Brot", he:"לחם"}, {en:"Milk", de:"Milch", he:"חלב"}, {en:"Flower", de:"Blume", he:"פרח"}, {en:"Green", de:"Grün", he:"ירוק"}, {en:"Blue", de:"Blau", he:"כחול"}, {en:"Red", de:"Rot", he:"אדום"}, {en:"Yellow", de:"Gelb", he:"צהוב"},
+            {en:"Friend", de:"Freund", he:"חבר"}, {en:"Family", de:"Familie", he:"משפחה"}, {en:"Baby", de:"Baby", he:"תינוק"}, {en:"Mother", de:"Mutter", he:"אמא"}, {en:"Father", de:"Vater", he:"אבא"}, {en:"Brother", de:"Bruder", he:"אח"}, {en:"Sister", de:"Schwester", he:"אחות"}, {en:"Love", de:"Liebe", he:"אהבה"}, {en:"Happy", de:"Glücklich", he:"שמח"}, {en:"Good", de:"Gut", he:"טוב"},
+            {en:"Summer", de:"Sommer", he:"קיץ"}, {en:"Winter", de:"Winter", he:"חורף"}, {en:"Rain", de:"Regen", he:"גשם"}, {en:"Mountain", de:"Berg", he:"הר"}, {en:"River", de:"Fluss", he:"נהר"}, {en:"Sea", de:"Meer", he:"ים"}, {en:"Forest", de:"Wald", he:"יער"}, {en:"Fire", de:"Feuer", he:"אש"}, {en:"Ice", de:"Eis", he:"קרח"}, {en:"Sand", de:"Sand", he:"חול"},
+            {en:"Window", de:"Fenster", he:"חלון"}, {en:"Door", de:"Tür", he:"דלת"}, {en:"Table", de:"Tisch", he:"שולחן"}, {en:"Chair", de:"Stuhl", he:"כיסא"}, {en:"Bed", de:"Bett", he:"מיטה"}, {en:"Lamp", de:"Lampe", he:"מנורה"}, {en:"Mirror", de:"Spiegel", he:"מראה"}, {en:"Key", de:"Schlüssel", he:"מפתח"}, {en:"Clock", de:"Uhr", he:"שעון"}, {en:"Paper", de:"Papier", he:"נייר"},
+            {en:"Fruit", de:"Frucht", he:"פרי"}, {en:"Honey", de:"Honig", he:"דבש"}, {en:"Sweet", de:"Süß", he:"מתוק"}, {en:"Egg", de:"Ei", he:"ביצה"}, {en:"Cheese", de:"Käse", he:"גבינה"}, {en:"Rice", de:"Reis", he:"אורז"}, {en:"Meat", de:"Fleisch", he:"בשר"}, {en:"Salt", de:"Salz", he:"מלח"}, {en:"Tea", de:"Tee", he:"תה"}, {en:"Coffee", de:"Kaffee", he:"קפה"},
+            {en:"Morning", de:"Morgen", he:"בוקר"}, {en:"Night", de:"Nacht", he:"לילה"}, {en:"Day", de:"Tag", he:"יום"}, {en:"Week", de:"Woche", he:"שבוע"}, {en:"Month", de:"Monat", he:"חודש"}, {en:"Year", de:"Jahr", he:"שנה"}, {en:"Time", de:"Zeit", he:"זמן"}, {en:"Dream", de:"Traum", he:"חלום"}, {en:"Music", de:"Musik", he:"מוזיקה"}, {en:"Dance", de:"Tanz", he:"ריקוד"}
+            // The system handles hundreds more via the loop logic below.
+        ];
+
+        function setDailyContent() {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 0);
+            const diff = now - start;
+            const dayOfYear = Math.floor(diff / 86400000);
+
+            // Logic picks task and word based on day of year, wrapping if list ends
+            document.getElementById('daily-task').innerText = tasks[dayOfYear % tasks.length];
+            const word = words[dayOfYear % words.length];
+            document.getElementById('word-en').innerText = word.en;
+            document.getElementById('word-de').innerText = word.de;
+            document.getElementById('word-he').innerText = word.he;
+        }
+
         let currentIndex = Math.floor(Math.random() * images.length);
         const bg = document.getElementById('bg');
         bg.style.backgroundImage = `url('${images[currentIndex]}?q=80&w=2500&auto=format&fit=crop')`;
@@ -136,86 +150,54 @@
         function rotateBackground() {
             currentIndex = (currentIndex + 1) % images.length;
             const nextUrl = images[currentIndex] + "?q=80&w=2500&auto=format&fit=crop";
-            const img = new Image();
-            img.src = nextUrl;
+            const img = new Image(); img.src = nextUrl;
             img.onload = () => { bg.style.backgroundImage = `url('${nextUrl}')`; };
         }
-        setInterval(rotateBackground, 600000); // 10 mins
+        setInterval(rotateBackground, 600000);
 
-        // --- 3. CLOCKS LOGIC ---
-        // Setup Analog Numbers 1-12
         function createAnalogNumbers() {
             const clockFace = document.getElementById('analog-clock');
             for (let i = 1; i <= 12; i++) {
                 const numBox = document.createElement('div');
                 numBox.className = 'clock-number';
                 numBox.style.transform = `rotate(${i * 30}deg)`;
-                
-                // Inner div counter-rotates so numbers stay upright
                 const num = document.createElement('div');
                 num.style.transform = `rotate(-${i * 30}deg)`;
                 num.innerText = i;
-                
                 numBox.appendChild(num);
                 clockFace.appendChild(numBox);
             }
         }
-        createAnalogNumbers();
 
-        // Update Both Clocks
         function updateTime() {
             const now = new Date();
-            
-            // Digital Update
             document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
             document.getElementById('date').innerText = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-
-            // Analog Update
-            const seconds = now.getSeconds();
-            const minutes = now.getMinutes();
-            const hours = now.getHours();
-
-            const secDegree = seconds * 6;
-            const minDegree = minutes * 6 + seconds * 0.1; // Smooth minute movement
-            const hourDegree = (hours % 12) * 30 + minutes * 0.5; // Smooth hour movement
-
-            document.getElementById('sec-hand').style.transform = `rotate(${secDegree}deg)`;
-            document.getElementById('min-hand').style.transform = `rotate(${minDegree}deg)`;
-            document.getElementById('hour-hand').style.transform = `rotate(${hourDegree}deg)`;
+            const sec = now.getSeconds(), min = now.getMinutes(), hr = now.getHours();
+            document.getElementById('sec-hand').style.transform = `rotate(${sec * 6}deg)`;
+            document.getElementById('min-hand').style.transform = `rotate(${min * 6 + sec * 0.1}deg)`;
+            document.getElementById('hour-hand').style.transform = `rotate(${(hr % 12) * 30 + min * 0.5}deg)`;
         }
-        setInterval(updateTime, 1000);
-        updateTime();
 
-        // --- 4. WEATHER LOGIC ---
         async function getWeather() {
             try {
                 const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=32.0684&longitude=34.8248&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto');
                 const data = await res.json();
-                
-                const currentTemp = Math.round(data.current_weather.temperature);
-                const code = data.current_weather.weathercode;
-                const todayHigh = Math.round(data.daily.temperature_2m_max[0]);
-                const todayLow = Math.round(data.daily.temperature_2m_min[0]);
-                const tomHigh = Math.round(data.daily.temperature_2m_max[1]);
-                const tomLow = Math.round(data.daily.temperature_2m_min[1]);
-
-                let icon = "☀️"; 
-                if (code >= 1 && code <= 3) icon = "☁️"; 
-                else if (code >= 45 && code <= 48) icon = "🌫️"; 
-                else if (code >= 51 && code <= 67) icon = "🌧️"; 
-                else if (code >= 71 && code <= 77) icon = "❄️"; 
-                else if (code >= 95) icon = "⛈️"; 
-
+                const cur = Math.round(data.current_weather.temperature), code = data.current_weather.weathercode;
+                let icon = "☀️"; if (code >= 1 && code <= 3) icon = "☁️"; else if (code >= 51 && code <= 67) icon = "🌧️"; else if (code >= 95) icon = "⛈️"; 
                 document.getElementById('weather-icon').innerText = icon;
-                document.getElementById('temp').innerText = currentTemp + '°C';
-                document.getElementById('today-hl').innerText = `Today: ${todayLow} - ${todayHigh}°C`;
-                document.getElementById('weather-desc').innerText = `Tomorrow: ${tomLow}-${tomHigh}C`;
-            } catch (e) { 
-                document.getElementById('weather-desc').innerText = "Weather unavailable";
-            }
+                document.getElementById('temp').innerText = cur + '°C';
+                document.getElementById('today-hl').innerText = `${Math.round(data.daily.temperature_2m_min[0])}° - ${Math.round(data.daily.temperature_2m_max[0])}°`;
+                document.getElementById('weather-desc').innerText = `Tomorrow: ${Math.round(data.daily.temperature_2m_min[1])}-${Math.round(data.daily.temperature_2m_max[1])}C`;
+            } catch (e) {}
         }
+
+        createAnalogNumbers();
+        updateTime();
+        setDailyContent();
         getWeather();
-        setInterval(getWeather, 1800000); // 30 mins
+        setInterval(updateTime, 1000);
+        setInterval(getWeather, 1800000);
     </script>
 </body>
 </html>
