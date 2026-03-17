@@ -10,50 +10,35 @@
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             color: white; background-color: #000; overflow: hidden;
         }
-
         #bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-size: cover; background-position: center;
             z-index: 1; transition: background-image 3s ease-in-out;
         }
-
         .container {
-            position: relative; z-index: 2;
-            display: flex; flex-direction: row; 
-            justify-content: space-between; 
-            align-items: center; 
-            height: 100vh; padding: 0 6vw; 
-            box-sizing: border-box;
+            position: relative; z-index: 2; display: flex; flex-direction: row; 
+            justify-content: space-between; align-items: center; 
+            height: 100vh; padding: 0 6vw; box-sizing: border-box;
         }
-
         .glass-card {
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border-radius: 35px; padding: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            width: 480px; box-shadow: 0 15px 45px rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border-radius: 35px; padding: 40px; border: 1px solid rgba(255, 255, 255, 0.15);
+            width: 500px; box-shadow: 0 15px 45px rgba(0,0,0,0.6);
         }
-
         #clock { font-size: 7rem; font-weight: 200; margin: 0; line-height: 1; letter-spacing: -2px; }
         #date { font-size: 1.4rem; opacity: 0.8; margin: 15px 0 25px 0; font-weight: 300; }
-        
         .weather-info { border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 20px; margin-bottom: 25px;}
         .temp-row { display: flex; align-items: center; gap: 15px; margin: 10px 0; }
         #weather-icon { font-size: 2.5rem; }
         #temp { font-size: 3rem; font-weight: 300; }
-
         .learning-section { border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 20px; }
         .label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.5; margin-bottom: 10px; }
-        
         .task-text { font-size: 1.8rem; font-weight: 400; color: #ffeb3b; margin-bottom: 25px; line-height: 1.4; }
-
         .word-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center; }
         .word-item span { display: block; font-size: 0.7rem; opacity: 0.6; margin-bottom: 4px; }
         .word-val { font-size: 1.6rem; font-weight: 500; }
-
         .analog-clock {
-            width: 320px; height: 320px;
-            background: rgba(0, 0, 0, 0.4);
+            width: 320px; height: 320px; background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
             border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.2);
             position: relative; display: flex; justify-content: center; align-items: center;
@@ -72,7 +57,6 @@
         <div class="glass-card">
             <div id="clock">00:00</div>
             <div id="date">Loading...</div>
-            
             <div class="weather-info">
                 <div class="temp-row">
                     <div id="weather-icon">--</div>
@@ -83,11 +67,9 @@
                     </div>
                 </div>
             </div>
-
             <div class="learning-section">
-                <div class="label">Task of the Day</div>
+                <div class="label">Family Task</div>
                 <div id="daily-task" class="task-text">...</div>
-
                 <div class="label">Word of the Day</div>
                 <div class="word-grid">
                     <div class="word-item"><span>English</span><div id="word-en" class="word-val">...</div></div>
@@ -96,7 +78,6 @@
                 </div>
             </div>
         </div>
-
         <div class="analog-clock" id="analog-clock">
             <div class="hand hour-hand" id="hour-hand"></div>
             <div class="hand min-hand" id="min-hand"></div>
@@ -106,17 +87,58 @@
     </div>
 
     <script>
-        const images = ["https://images.unsplash.com/photo-1541701494587-cb58502866ab", "https://images.unsplash.com/photo-1441974231531-c6227db76b6e", "https://images.unsplash.com/photo-1500375592092-40eb2168fd21"];
-        const tasks = ["Draw a picture of a magical forest animal.", "Find 5 blue things in the house.", "Tell a story about a treehouse adventure.", "Do 10 jumping jacks!", "Help clear the table after dinner."];
-        const words = [{ en: "Friend", de: "Freund", he: "חבר" }, { en: "Family", de: "Familie", he: "משפחה" }, { en: "Adventure", de: "Abenteuer", he: "הרפתקה" }];
+        // 100 TASKS (RE-LOADED)
+        const tasks = [
+            "Draw a picture of a magical forest animal.", "Find 5 blue things in the house.", "Tell a story about a treehouse adventure.", "Do 10 jumping jacks!", "Help clear the table after dinner.", "Learn how to say 'Water' in Hebrew.", "Draw a map of your bedroom.", "Sing your favorite song together.", "Find a leaf outside and describe it.", "Help match the socks from the laundry.",
+            "Write a thank-you note to someone.", "Balance on one foot for 20 seconds.", "Build the tallest tower you can with blocks.", "Find three things that start with 'B'.", "Make a paper airplane and fly it.", "Help water the plants today.", "Count how many windows are in our home.", "Draw a picture of your dream job.", "Invent a new dance move.", "Find a smooth stone outside.",
+            "Look for a bird and describe its colors.", "Practice tying a knot.", "Help organize the toy box.", "Draw a picture using only 3 colors.", "Tell a joke to the family.", "Find two things that are round.", "Help prepare a healthy snack.", "Try to whistle a tune.", "Draw a portrait of a sibling.", "Count to 20 in German.",
+            "Find something that smells like spring.", "Make a bookmark for a book.", "Help wipe the dining table.", "Create a secret handshake.", "Draw a dinosaur in a hat.", "Find something fuzzy.", "Do a slow-motion race.", "Help put away groceries.", "List 3 things you are thankful for.", "Find something the size of your hand.",
+            "Make a silly face in the mirror.", "Hop like a frog 10 times.", "Help fold the small towels.", "Draw a space rocket.", "Find something very soft.", "Learn how to say 'Love' in German.", "Make a card for a friend.", "Count the doors in the house.", "Find a shadow and touch it.", "Help sort the recycling.",
+            "Draw a giant colorful rainbow.", "Find something starting with 'M'.", "Walk in a straight line.", "Help tidy the shoes.", "Describe a cloud shape.", "Find something cold.", "Learn a new flower name.", "Pick your clothes for tomorrow.", "Make a pattern with spoons.", "Draw a funny monster.",
+            "Find something shiny.", "Roar like a lion!", "Help dust a shelf.", "Draw a house for a ghost.", "Find a beautiful sound.", "Say 'Friend' in Hebrew.", "Make a paper ring necklace.", "Count the chairs.", "Find your favorite color.", "Help feed a pet or bird.",
+            "Draw an underwater city.", "Find something starting with 'S'.", "Walk on your tiptoes.", "Help put pillows on the sofa.", "Describe a kitchen smell.", "Find something rough.", "Learn a new fruit name.", "Help carry a small bag.", "Make a paper hat.", "Draw a superhero.",
+            "Find something very light.", "Whistle like a bird.", "Organize a bookshelf.", "Draw a giant flower garden.", "Find a reflection.", "Say 'Thank you' in German.", "Make a drawing for a sibling.", "Count steps to your bed.", "Find something older than you.", "Give someone a big hug!",
+            "Practice your best robot voice.", "Find a green leaf.", "Name 5 animals that fly.", "Draw a picture of the sun.", "Help pick up 10 toys.", "Find something that makes music.", "Do a big stretch!", "Tell a story about a magic cat.", "Draw a picture of a castle.", "Smile at everyone today!"
+        ];
+
+        // MASSIVE WORD LIBRARY (Organized for growth)
+        const words = [
+            // Nature
+            {en:"Apple", de:"Apfel", he:"תפוח"}, {en:"Tree", de:"Baum", he:"עץ"}, {en:"Cloud", de:"Wolke", he:"ענן"}, {en:"Sun", de:"Sonne", he:"שמש"}, {en:"Moon", de:"Mond", he:"ירח"}, {en:"Star", de:"Stern", he:"כוכב"}, {en:"Flower", de:"Blume", he:"פרח"}, {en:"River", de:"Fluss", he:"נהר"}, {en:"Forest", de:"Wald", he:"יער"}, {en:"Mountain", de:"Berg", he:"הר"},
+            // Animals
+            {en:"Cat", de:"Katze", he:"חתול"}, {en:"Dog", de:"Hund", he:"כלב"}, {en:"Bird", de:"Vogel", he:"ציפור"}, {en:"Lion", de:"Löwe", he:"אריה"}, {en:"Elephant", de:"Elefant", he:"פיל"}, {en:"Butterfly", de:"Schmetterling", he:"פרפר"}, {en:"Fish", de:"Fisch", he:"דג"}, {en:"Horse", de:"Pferd", he:"סוס"}, {en:"Bee", de:"Biene", he:"דבורה"}, {en:"Bear", de:"Bär", he:"דוב"},
+            // Home
+            {en:"House", de:"Haus", he:"בית"}, {en:"Book", de:"Buch", he:"ספר"}, {en:"Table", de:"Tisch", he:"שולחן"}, {en:"Chair", de:"Stuhl", he:"כיסא"}, {en:"Window", de:"Fenster", he:"חלון"}, {en:"Door", de:"Tür", he:"דלת"}, {en:"Key", de:"Schlüssel", he:"מפתח"}, {en:"Bed", de:"Bett", he:"מיטה"}, {en:"Lamp", de:"Lampe", he:"מנורה"}, {en:"Paper", de:"Papier", he:"נייר"},
+            // Food
+            {en:"Water", de:"Wasser", he:"מים"}, {en:"Bread", de:"Brot", he:"לחם"}, {en:"Milk", de:"Milch", he:"חלב"}, {en:"Honey", de:"Honig", he:"דבש"}, {en:"Egg", de:"Ei", he:"ביצה"}, {en:"Cheese", de:"Käse", he:"גבינה"}, {en:"Fruit", de:"Frucht", he:"פרי"}, {en:"Salt", de:"Salz", he:"מלח"}, {en:"Sweet", de:"Süß", he:"מתוק"}, {en:"Cake", de:"Kuchen", he:"עוגה"},
+            // Emotions/Abstract
+            {en:"Friend", de:"Freund", he:"חבר"}, {en:"Family", de:"Familie", he:"משפחה"}, {en:"Love", de:"Liebe", he:"אהבה"}, {en:"Happy", de:"Glücklich", he:"שמח"}, {en:"Good", de:"Gut", he:"טוב"}, {en:"Adventure", de:"Abenteuer", he:"הרפתקה"}, {en:"Time", de:"Zeit", he:"זמן"}, {en:"Dream", de:"Traum", he:"חלום"}, {en:"Music", de:"Musik", he:"מוזיקה"}, {en:"Peace", de:"Frieden", he:"שלום"},
+            // Colors
+            {en:"Red", de:"Rot", he:"אדום"}, {en:"Blue", de:"Blau", he:"כחול"}, {en:"Green", de:"Grün", he:"ירוק"}, {en:"Yellow", de:"Gelb", he:"צהוב"}, {en:"White", de:"Weiß", he:"לבן"}, {en:"Black", de:"Schwarz", he:"שחור"}, {en:"Orange", de:"Orange", he:"כתום"}, {en:"Purple", de:"Lila", he:"סגול"}, {en:"Pink", de:"Rosa", he:"ורוד"}, {en:"Brown", de:"Braun", he:"חום"},
+            // Body Parts
+            {en:"Hand", de:"Hand", he:"יד"}, {en:"Eye", de:"Auge", he:"עין"}, {en:"Head", de:"Kopf", he:"ראש"}, {en:"Mouth", de:"Mund", he:"פה"}, {en:"Nose", de:"Nase", he:"אף"}, {en:"Foot", de:"Fuß", he:"רגל"}, {en:"Heart", de:"Herz", he:"לב"}, {en:"Ear", de:"Ohr", he:"אוזן"}, {en:"Hair", de:"Haar", he:"שיער"}, {en:"Smile", de:"Lächeln", he:"חיוך"}
+        ];
 
         function setDailyContent() {
-            const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+            const now = new Date();
+            const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
             document.getElementById('daily-task').innerText = tasks[dayOfYear % tasks.length];
+            // Uses a fallback loop so the word never disappears even if list isn't 365 yet
             const word = words[dayOfYear % words.length];
             document.getElementById('word-en').innerText = word.en;
             document.getElementById('word-de').innerText = word.de;
             document.getElementById('word-he').innerText = word.he;
+        }
+
+        async function getWeather() {
+            try {
+                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=32.0684&longitude=34.8248&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto');
+                const data = await res.json();
+                document.getElementById('weather-icon').innerText = data.current_weather.weathercode <= 3 ? "☀️" : "🌧️";
+                document.getElementById('temp').innerText = Math.round(data.current_weather.temperature) + '°C';
+                document.getElementById('today-range').innerText = `Today: ${Math.round(data.daily.temperature_2m_min[0])}° - ${Math.round(data.daily.temperature_2m_max[0])}°`;
+                document.getElementById('tomorrow-range').innerText = `Tomorrow: ${Math.round(data.daily.temperature_2m_min[1])}° - ${Math.round(data.daily.temperature_2m_max[1])}°`;
+            } catch (e) {}
         }
 
         function updateTime() {
@@ -127,23 +149,6 @@
             document.getElementById('sec-hand').style.transform = `rotate(${sec * 6}deg)`;
             document.getElementById('min-hand').style.transform = `rotate(${min * 6 + sec * 0.1}deg)`;
             document.getElementById('hour-hand').style.transform = `rotate(${(hr % 12) * 30 + min * 0.5}deg)`;
-        }
-
-        async function getWeather() {
-            try {
-                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=32.0684&longitude=34.8248&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto');
-                const data = await res.json();
-                const cur = Math.round(data.current_weather.temperature);
-                const code = data.current_weather.weathercode;
-                let icon = "☀️"; if (code >= 1 && code <= 3) icon = "☁️"; else if (code >= 51 && code <= 67) icon = "🌧️"; else if (code >= 95) icon = "⛈️"; 
-
-                document.getElementById('weather-icon').innerText = icon;
-                document.getElementById('temp').innerText = cur + '°C';
-                
-                // Formatted ranges
-                document.getElementById('today-range').innerText = `Today: ${Math.round(data.daily.temperature_2m_min[0])}° - ${Math.round(data.daily.temperature_2m_max[0])}°`;
-                document.getElementById('tomorrow-range').innerText = `Tomorrow: ${Math.round(data.daily.temperature_2m_min[1])}° - ${Math.round(data.daily.temperature_2m_max[1])}°`;
-            } catch (e) {}
         }
 
         function createAnalogNumbers() {
@@ -160,8 +165,8 @@
             }
         }
 
-        let currentIndex = Math.floor(Math.random() * images.length);
-        document.getElementById('bg').style.backgroundImage = `url('${images[currentIndex]}?q=80&w=2500&auto=format&fit=crop')`;
+        const images = ["https://images.unsplash.com/photo-1541701494587-cb58502866ab", "https://images.unsplash.com/photo-1441974231531-c6227db76b6e", "https://images.unsplash.com/photo-1500375592092-40eb2168fd21"];
+        document.getElementById('bg').style.backgroundImage = `url('${images[Math.floor(Math.random() * images.length)]}?q=80&w=2500&auto=format&fit=crop')`;
 
         createAnalogNumbers();
         updateTime();
