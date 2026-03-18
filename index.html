@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,12 +40,26 @@
             height: 100vh; padding: 0 6vw; box-sizing: border-box;
         }
         
-        /* LEFT SIDE: GLASS CARD */
+        /* LEFT SIDE: GLASS CARD — standard mode */
         .glass-card {
-            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border-radius: 35px; padding: 40px; border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-radius: 35px; padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
             width: 500px; box-shadow: 0 15px 45px rgba(0,0,0,0.6);
+            transition: background 0.8s ease, border-color 0.8s ease, box-shadow 0.8s ease;
         }
+
+        /* GLASS CARD — birthday mode (no blur) */
+        .glass-card.bday-mode {
+            background: rgba(15, 5, 40, 0.75);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            border-color: rgba(255, 200, 80, 0.2);
+            box-shadow: 0 15px 45px rgba(0,0,0,0.8);
+        }
+
         #clock { font-size: 7rem; font-weight: 200; margin: 0; line-height: 1; letter-spacing: -2px; }
         #date { font-size: 1.4rem; opacity: 0.8; margin: 15px 0 25px 0; font-weight: 300; }
         
@@ -64,13 +79,26 @@
             width: 500px; display: flex; justify-content: center; align-items: center;
         }
         
-        /* ANALOG CLOCK */
+        /* ANALOG CLOCK — standard mode */
         .analog-clock {
-            width: 320px; height: 320px; background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.2);
+            width: 320px; height: 320px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
             position: relative; display: flex; justify-content: center; align-items: center;
+            transition: background 0.8s ease, border-color 0.8s ease;
         }
+
+        /* ANALOG CLOCK — birthday mode (no blur) */
+        .analog-clock.bday-mode {
+            background: rgba(15, 5, 40, 0.75);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            border-color: rgba(255, 200, 80, 0.2);
+        }
+
         .clock-number { position: absolute; width: 100%; height: 100%; text-align: center; padding-top: 15px; font-size: 1.8rem; color: rgba(255,255,255,0.9); }
         .hand { position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; border-radius: 10px; z-index: 10; }
         .hour-hand { width: 8px; height: 80px; margin-left: -4px; background: #fff; }
@@ -78,7 +106,7 @@
         .sec-hand { width: 2px; height: 130px; margin-left: -1px; background: #ff4d4d; }
         .center-dot { position: absolute; width: 16px; height: 16px; background: #fff; border-radius: 50%; z-index: 11; }
 
-        /* BIRTHDAY DISPLAY (Variant 1 Typography) */
+        /* BIRTHDAY DISPLAY */
         .bday-display {
             display: none; text-align: center;
         }
@@ -90,7 +118,12 @@
             letter-spacing: 0.04em;
             text-shadow: 0 0 40px rgba(255,200,50,0.6), 0 0 80px rgba(255,100,200,0.3);
             line-height: 1.1;
-            margin: 0;
+            margin: 0 0 15px 0;
+        }
+        .bday-display .cake {
+            font-size: 4rem;
+            display: block;
+            margin-top: 10px;
         }
         .bday-display .sub {
             font-family: 'Nunito', sans-serif;
@@ -112,7 +145,7 @@
 
     <div class="container">
         
-        <div class="glass-card">
+        <div class="glass-card" id="glass-card">
             <div id="clock">00:00</div>
             <div id="date">Loading...</div>
             
@@ -148,7 +181,7 @@
             <div class="bday-display" id="bday-display">
                 <div class="sub">✦ &nbsp; Today is special &nbsp; ✦</div>
                 <h1>Happy Birthday<br><span id="bday-name-right">Name</span>!</h1>
-                <h1>🎂</h1>
+                <span class="cake">🎂</span>
             </div>
         </div>
 
@@ -176,8 +209,10 @@
             "11-22": "Adam"
         };
 
-        // CONFETTI ANIMATION SCRIPT
+        // CONFETTI ANIMATION
         let confettiStarted = false;
+        let confettiRAF = null;
+
         function startConfetti() {
             if (confettiStarted) return;
             confettiStarted = true;
@@ -207,11 +242,13 @@
             
             let angle = 0;
             function draw() {
-                if (document.getElementById('bday-bg').style.display === 'none') return;
-                
+                if (document.getElementById('bday-bg').style.display === 'none') {
+                    confettiStarted = false;
+                    return;
+                }
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 angle += 0.008;
-                pieces.forEach((p, i) => {
+                pieces.forEach((p) => {
                     ctx.save();
                     ctx.translate(p.x + p.tilt, p.y);
                     ctx.fillStyle = p.color;
@@ -233,43 +270,66 @@
                         p.x = Math.random() * canvas.width;
                     }
                 });
-                requestAnimationFrame(draw);
+                confettiRAF = requestAnimationFrame(draw);
             }
             draw();
         }
 
-        // SWAP BETWEEN CLOCK AND BIRTHDAY GREETING
+        function stopConfetti() {
+            if (confettiRAF) {
+                cancelAnimationFrame(confettiRAF);
+                confettiRAF = null;
+            }
+            confettiStarted = false;
+        }
+
+        // BIRTHDAY STATE TRACKING — only update DOM when state actually changes
+        let isBirthdayMode = null;
+
         function checkBirthday(now) {
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
             const todayStr = `${month}-${day}`;
-            
-            const bdayBg = document.getElementById('bday-bg');
+            const isBday = !!birthdays[todayStr];
+
+            // Only touch the DOM if the state has changed
+            if (isBday === isBirthdayMode) return;
+            isBirthdayMode = isBday;
+
+            const bdayBg     = document.getElementById('bday-bg');
             const standardBg = document.getElementById('bg');
             const analogClock = document.getElementById('analog-clock');
             const bdayDisplay = document.getElementById('bday-display');
+            const glassCard   = document.getElementById('glass-card');
 
-            if (birthdays[todayStr]) {
-                // Update Name
+            if (isBday) {
                 document.getElementById('bday-name-right').innerText = birthdays[todayStr];
-                
-                // Show Birthday Elements, Hide Clock
+
+                // Switch right panel
                 bdayDisplay.style.display = 'block';
                 analogClock.style.display = 'none';
-                
-                // Show Confetti
+
+                // Swap backgrounds
                 bdayBg.style.display = 'block';
                 standardBg.style.opacity = '0';
+
+                // Remove blur from both cards — eliminates flicker with confetti canvas
+                glassCard.classList.add('bday-mode');
+                analogClock.classList.add('bday-mode');
+
                 startConfetti();
             } else {
-                // Show Clock, Hide Birthday Elements
                 bdayDisplay.style.display = 'none';
                 analogClock.style.display = 'flex';
-                
-                // Show Standard Images
+
                 bdayBg.style.display = 'none';
                 standardBg.style.opacity = '1';
-                confettiStarted = false; 
+
+                // Restore blur for normal mode
+                glassCard.classList.remove('bday-mode');
+                analogClock.classList.remove('bday-mode');
+
+                stopConfetti();
             }
         }
 
@@ -286,55 +346,95 @@
             try {
                 const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=32.0684&longitude=34.8248&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto');
                 const data = await res.json();
-                document.getElementById('weather-icon').innerText = data.current_weather.weathercode <= 3 ? "☀️" : "🌧️";
+                const code = data.current_weather.weathercode;
+                const icons = {
+                    0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️',
+                    45:'🌫️', 48:'🌫️',
+                    51:'🌦️', 53:'🌦️', 55:'🌧️',
+                    61:'🌧️', 63:'🌧️', 65:'🌧️',
+                    71:'❄️', 73:'❄️', 75:'❄️',
+                    80:'🌦️', 81:'🌧️', 82:'⛈️',
+                    95:'⛈️', 96:'⛈️', 99:'⛈️'
+                };
+                document.getElementById('weather-icon').innerText = icons[code] || '🌡️';
                 document.getElementById('temp').innerText = Math.round(data.current_weather.temperature) + '°C';
-                document.getElementById('today-range').innerText = `Today: ${Math.round(data.daily.temperature_2m_min[0])}° - ${Math.round(data.daily.temperature_2m_max[0])}°`;
-                document.getElementById('tomorrow-range').innerText = `Tomorrow: ${Math.round(data.daily.temperature_2m_min[1])}° - ${Math.round(data.daily.temperature_2m_max[1])}°`;
+                document.getElementById('today-range').innerText = `Today: ${Math.round(data.daily.temperature_2m_min[0])}° – ${Math.round(data.daily.temperature_2m_max[0])}°`;
+                document.getElementById('tomorrow-range').innerText = `Tomorrow: ${Math.round(data.daily.temperature_2m_min[1])}° – ${Math.round(data.daily.temperature_2m_max[1])}°`;
             } catch (e) {}
         }
 
+        // Daily content: only recalculate when the date changes
+        let lastDay = null;
         function updateTime() {
             const now = new Date();
-            
+
             checkBirthday(now);
 
             document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
             document.getElementById('date').innerText = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-            
+
             const sec = now.getSeconds(), min = now.getMinutes(), hr = now.getHours();
             document.getElementById('sec-hand').style.transform = `rotate(${sec * 6}deg)`;
             document.getElementById('min-hand').style.transform = `rotate(${min * 6 + sec * 0.1}deg)`;
             document.getElementById('hour-hand').style.transform = `rotate(${(hr % 12) * 30 + min * 0.5}deg)`;
-            
-            setDailyContent(now);
-        }
 
-        function createAnalogNumbers() {
-            const clockFace = document.getElementById('analog-clock');
-            for (let i = 1; i <= 12; i++) {
-                const numBox = document.createElement('div');
-                numBox.className = 'clock-number';
-                numBox.style.transform = `rotate(${i * 30}deg)`;
-                const num = document.createElement('div');
-                num.style.transform = `rotate(-${i * 30}deg)`;
-                num.innerText = i;
-                numBox.appendChild(num);
-                clockFace.appendChild(numBox);
+            const today = now.toDateString();
+            if (today !== lastDay) {
+                lastDay = today;
+                setDailyContent(now);
             }
         }
 
-        const images = ["https://images.unsplash.com/photo-1541701494587-cb58502866ab", "https://images.unsplash.com/photo-1441974231531-c6227db76b6e", "https://images.unsplash.com/photo-1500375592092-40eb2168fd21"];
-        function setRandomBg() {
-            document.getElementById('bg').style.backgroundImage = `url('${images[Math.floor(Math.random() * images.length)]}?q=80&w=2500&auto=format&fit=crop')`;
+        function createAnalogNumbers() {
+            const clock = document.getElementById('analog-clock');
+            const radius = 130;
+            const cx = 160, cy = 160;
+            for (let i = 1; i <= 12; i++) {
+                const angle = (i * 30 - 90) * (Math.PI / 180);
+                const x = cx + radius * Math.cos(angle);
+                const y = cy + radius * Math.sin(angle);
+                const num = document.createElement('div');
+                num.innerText = i;
+                num.style.cssText = `
+                    position: absolute;
+                    left: ${x}px; top: ${y}px;
+                    transform: translate(-50%, -50%);
+                    font-size: 1.1rem;
+                    color: rgba(255,255,255,0.75);
+                    font-weight: 300;
+                    pointer-events: none;
+                `;
+                clock.appendChild(num);
+            }
         }
-        setRandomBg();
-        setInterval(setRandomBg, 600000); 
+
+        // Background crossfade
+        let bgIndex = 0;
+        const images = [
+            "https://images.unsplash.com/photo-1541701494587-cb58502866ab",
+            "https://images.unsplash.com/photo-1441974231531-c6227db76b6e",
+            "https://images.unsplash.com/photo-1500375592092-40eb2168fd21"
+        ];
+        const bgEl = document.getElementById('bg');
+
+        function cycleBg() {
+            bgIndex = (bgIndex + 1) % images.length;
+            bgEl.style.opacity = '0';
+            setTimeout(() => {
+                bgEl.style.backgroundImage = `url('${images[bgIndex]}?q=80&w=2500&auto=format&fit=crop')`;
+                bgEl.style.opacity = '1';
+            }, 1000);
+        }
+
+        bgEl.style.backgroundImage = `url('${images[0]}?q=80&w=2500&auto=format&fit=crop')`;
+        bgEl.style.opacity = '1';
+        setInterval(cycleBg, 600000);
 
         createAnalogNumbers();
-        updateTime(); 
+        updateTime();
         getWeather();
         setInterval(updateTime, 1000);
-        setInterval(getWeather, 1800000); 
+        setInterval(getWeather, 1800000);
     </script>
 </body>
 </html>
