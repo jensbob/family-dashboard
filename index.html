@@ -124,6 +124,24 @@
             font-size: 4rem;
             display: block;
             margin-top: 10px;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+            user-select: none;
+        }
+        .bday-display .cake:hover {
+            transform: scale(1.2);
+        }
+        .bday-display .cake:active {
+            transform: scale(0.95);
+        }
+        .cake-hint {
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.75rem;
+            color: rgba(255, 220, 120, 0.4);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-top: 8px;
+            transition: opacity 0.5s ease;
         }
         .bday-display .sub {
             font-family: 'Nunito', sans-serif;
@@ -181,7 +199,8 @@
             <div class="bday-display" id="bday-display">
                 <div class="sub">✦ &nbsp; Today is special &nbsp; ✦</div>
                 <h1>Happy Birthday<br><span id="bday-name-right">Name</span>!</h1>
-                <span class="cake">🎂</span>
+                <span class="cake" id="cake-btn" title="Play Happy Birthday">🎂</span>
+                <div class="cake-hint" id="cake-hint">tap to play ♪</div>
             </div>
         </div>
 
@@ -283,7 +302,77 @@
             confettiStarted = false;
         }
 
-        // BIRTHDAY STATE TRACKING — only update DOM when state actually changes
+        // HAPPY BIRTHDAY — synthesized via Web Audio API (no file needed)
+        let audioCtx = null;
+        let songPlaying = false;
+
+        function playHappyBirthday() {
+            if (songPlaying) return;
+            songPlaying = true;
+
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Notes: frequency, duration (beats), gap after
+            // "Happy Birthday to You" in C major
+            const bpm = 160;
+            const beat = 60 / bpm;
+            const notes = [
+                // "Hap-py birth-day to you"
+                [261.63, 0.75], [261.63, 0.25], [293.66, 1], [261.63, 1], [349.23, 1], [329.63, 2],
+                // "Hap-py birth-day to you"
+                [261.63, 0.75], [261.63, 0.25], [293.66, 1], [261.63, 1], [392.00, 1], [349.23, 2],
+                // "Hap-py birth-day dear [name]"
+                [261.63, 0.75], [261.63, 0.25], [523.25, 1], [440.00, 1], [349.23, 1], [329.63, 1], [293.66, 2],
+                // "Hap-py birth-day to you"
+                [466.16, 0.75], [466.16, 0.25], [440.00, 1], [349.23, 1], [392.00, 1], [349.23, 2],
+            ];
+
+            let t = audioCtx.currentTime + 0.05;
+            notes.forEach(([freq, dur]) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, t);
+
+                const noteDur = dur * beat;
+                gain.gain.setValueAtTime(0, t);
+                gain.gain.linearRampToValueAtTime(0.4, t + 0.02);
+                gain.gain.linearRampToValueAtTime(0.35, t + noteDur * 0.7);
+                gain.gain.linearRampToValueAtTime(0, t + noteDur * 0.92);
+
+                osc.start(t);
+                osc.stop(t + noteDur);
+                t += noteDur;
+            });
+
+            // Animate the cake while playing
+            const cake = document.getElementById('cake-btn');
+            const hint = document.getElementById('cake-hint');
+            hint.style.opacity = '0';
+            cake.style.animation = 'none';
+            let bounce = 0;
+            const totalBeats = notes.reduce((s, [, d]) => s + d, 0);
+            const totalMs = totalBeats * beat * 1000;
+
+            const bounceInterval = setInterval(() => {
+                bounce = !bounce;
+                cake.style.transform = bounce ? 'scale(1.25) rotate(-8deg)' : 'scale(1.1) rotate(8deg)';
+            }, beat * 500);
+
+            setTimeout(() => {
+                clearInterval(bounceInterval);
+                cake.style.transform = '';
+                hint.style.opacity = '1';
+                songPlaying = false;
+            }, totalMs + 200);
+        }
+
+        document.getElementById('cake-btn').addEventListener('click', playHappyBirthday);
+
+
         let isBirthdayMode = null;
 
         function checkBirthday(now) {
