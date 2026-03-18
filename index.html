@@ -4,22 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Family Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300&family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
     <style>
         body, html {
             margin: 0; padding: 0; height: 100%; width: 100%;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             color: white; background-color: #000; overflow: hidden;
         }
+        
+        /* STANDARD BACKGROUND */
         #bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-size: cover; background-position: center;
-            z-index: 1; transition: background-image 3s ease-in-out;
+            z-index: 1; transition: opacity 1s ease-in-out;
         }
+
+        /* BIRTHDAY CONFETTI BACKGROUND */
+        #bday-bg {
+            display: none; position: fixed; inset: 0; width: 100%; height: 100%;
+            background: #0f0a1e; z-index: 2; 
+        }
+        .bday-gradient {
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 80% 60% at 50% 50%, #1a0a3e 0%, #0f0a1e 100%);
+        }
+        #confetti-canvas {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+        }
+
+        /* DASHBOARD LAYOUT */
         .container {
-            position: relative; z-index: 2; display: flex; flex-direction: row; 
+            position: relative; z-index: 10; display: flex; flex-direction: row; 
             justify-content: space-between; align-items: center; 
             height: 100vh; padding: 0 6vw; box-sizing: border-box;
         }
+        
+        /* LEFT SIDE: GLASS CARD */
         .glass-card {
             background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
             border-radius: 35px; padding: 40px; border: 1px solid rgba(255, 255, 255, 0.15);
@@ -27,16 +47,24 @@
         }
         #clock { font-size: 7rem; font-weight: 200; margin: 0; line-height: 1; letter-spacing: -2px; }
         #date { font-size: 1.4rem; opacity: 0.8; margin: 15px 0 25px 0; font-weight: 300; }
-        .weather-info { border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 20px; margin-bottom: 25px;}
+        
+        .weather-info { border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 20px; margin-bottom: 25px; margin-top: 20px;}
         .temp-row { display: flex; align-items: center; gap: 15px; margin: 10px 0; }
         #weather-icon { font-size: 2.5rem; }
         #temp { font-size: 3rem; font-weight: 300; }
+        
         .learning-section { border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 20px; }
-        .label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.5; margin-bottom: 10px; }
-        .task-text { font-size: 1.8rem; font-weight: 400; color: #ffeb3b; margin-bottom: 25px; line-height: 1.4; }
+        .label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.5; margin-bottom: 15px; }
         .word-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center; }
         .word-item span { display: block; font-size: 0.7rem; opacity: 0.6; margin-bottom: 4px; }
         .word-val { font-size: 1.6rem; font-weight: 500; }
+
+        /* RIGHT SIDE WRAPPER */
+        .right-panel {
+            width: 500px; display: flex; justify-content: center; align-items: center;
+        }
+        
+        /* ANALOG CLOCK */
         .analog-clock {
             width: 320px; height: 320px; background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
@@ -49,14 +77,45 @@
         .min-hand { width: 4px; height: 120px; margin-left: -2px; background: #ddd; }
         .sec-hand { width: 2px; height: 130px; margin-left: -1px; background: #ff4d4d; }
         .center-dot { position: absolute; width: 16px; height: 16px; background: #fff; border-radius: 50%; z-index: 11; }
+
+        /* BIRTHDAY DISPLAY (Variant 1 Typography) */
+        .bday-display {
+            display: none; text-align: center;
+        }
+        .bday-display h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 5.5rem;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 0.04em;
+            text-shadow: 0 0 40px rgba(255,200,50,0.6), 0 0 80px rgba(255,100,200,0.3);
+            line-height: 1.1;
+            margin: 0;
+        }
+        .bday-display .sub {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.2rem;
+            color: rgba(255,220,120,0.9);
+            font-weight: 300;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            margin-bottom: 25px;
+        }
     </style>
 </head>
 <body>
     <div id="bg"></div>
+    <div id="bday-bg">
+        <div class="bday-gradient"></div>
+        <canvas id="confetti-canvas"></canvas>
+    </div>
+
     <div class="container">
+        
         <div class="glass-card">
             <div id="clock">00:00</div>
             <div id="date">Loading...</div>
+            
             <div class="weather-info">
                 <div class="temp-row">
                     <div id="weather-icon">--</div>
@@ -67,9 +126,8 @@
                     </div>
                 </div>
             </div>
+            
             <div class="learning-section">
-                <div class="label">Family Task</div>
-                <div id="daily-task" class="task-text">...</div>
                 <div class="label">Word of the Day</div>
                 <div class="word-grid">
                     <div class="word-item"><span>English</span><div id="word-en" class="word-val">...</div></div>
@@ -78,52 +136,146 @@
                 </div>
             </div>
         </div>
-        <div class="analog-clock" id="analog-clock">
-            <div class="hand hour-hand" id="hour-hand"></div>
-            <div class="hand min-hand" id="min-hand"></div>
-            <div class="hand sec-hand" id="sec-hand"></div>
-            <div class="center-dot"></div>
+        
+        <div class="right-panel">
+            <div class="analog-clock" id="analog-clock">
+                <div class="hand hour-hand" id="hour-hand"></div>
+                <div class="hand min-hand" id="min-hand"></div>
+                <div class="hand sec-hand" id="sec-hand"></div>
+                <div class="center-dot"></div>
+            </div>
+            
+            <div class="bday-display" id="bday-display">
+                <div class="sub">✦ &nbsp; Today is special &nbsp; ✦</div>
+                <h1>Happy Birthday<br><span id="bday-name-right">Name</span>!</h1>
+                <h1>🎂</h1>
+            </div>
         </div>
+
     </div>
 
     <script>
-        // 100 TASKS (RE-LOADED)
-        const tasks = [
-            "Draw a picture of a magical forest animal.", "Find 5 blue things in the house.", "Tell a story about a treehouse adventure.", "Do 10 jumping jacks!", "Help clear the table after dinner.", "Learn how to say 'Water' in Hebrew.", "Draw a map of your bedroom.", "Sing your favorite song together.", "Find a leaf outside and describe it.", "Help match the socks from the laundry.",
-            "Write a thank-you note to someone.", "Balance on one foot for 20 seconds.", "Build the tallest tower you can with blocks.", "Find three things that start with 'B'.", "Make a paper airplane and fly it.", "Help water the plants today.", "Count how many windows are in our home.", "Draw a picture of your dream job.", "Invent a new dance move.", "Find a smooth stone outside.",
-            "Look for a bird and describe its colors.", "Practice tying a knot.", "Help organize the toy box.", "Draw a picture using only 3 colors.", "Tell a joke to the family.", "Find two things that are round.", "Help prepare a healthy snack.", "Try to whistle a tune.", "Draw a portrait of a sibling.", "Count to 20 in German.",
-            "Find something that smells like spring.", "Make a bookmark for a book.", "Help wipe the dining table.", "Create a secret handshake.", "Draw a dinosaur in a hat.", "Find something fuzzy.", "Do a slow-motion race.", "Help put away groceries.", "List 3 things you are thankful for.", "Find something the size of your hand.",
-            "Make a silly face in the mirror.", "Hop like a frog 10 times.", "Help fold the small towels.", "Draw a space rocket.", "Find something very soft.", "Learn how to say 'Love' in German.", "Make a card for a friend.", "Count the doors in the house.", "Find a shadow and touch it.", "Help sort the recycling.",
-            "Draw a giant colorful rainbow.", "Find something starting with 'M'.", "Walk in a straight line.", "Help tidy the shoes.", "Describe a cloud shape.", "Find something cold.", "Learn a new flower name.", "Pick your clothes for tomorrow.", "Make a pattern with spoons.", "Draw a funny monster.",
-            "Find something shiny.", "Roar like a lion!", "Help dust a shelf.", "Draw a house for a ghost.", "Find a beautiful sound.", "Say 'Friend' in Hebrew.", "Make a paper ring necklace.", "Count the chairs.", "Find your favorite color.", "Help feed a pet or bird.",
-            "Draw an underwater city.", "Find something starting with 'S'.", "Walk on your tiptoes.", "Help put pillows on the sofa.", "Describe a kitchen smell.", "Find something rough.", "Learn a new fruit name.", "Help carry a small bag.", "Make a paper hat.", "Draw a superhero.",
-            "Find something very light.", "Whistle like a bird.", "Organize a bookshelf.", "Draw a giant flower garden.", "Find a reflection.", "Say 'Thank you' in German.", "Make a drawing for a sibling.", "Count steps to your bed.", "Find something older than you.", "Give someone a big hug!",
-            "Practice your best robot voice.", "Find a green leaf.", "Name 5 animals that fly.", "Draw a picture of the sun.", "Help pick up 10 toys.", "Find something that makes music.", "Do a big stretch!", "Tell a story about a magic cat.", "Draw a picture of a castle.", "Smile at everyone today!"
-        ];
-
-        // MASSIVE WORD LIBRARY (Organized for growth)
+        // WORD LIBRARY
         const words = [
-            // Nature
             {en:"Apple", de:"Apfel", he:"תפוח"}, {en:"Tree", de:"Baum", he:"עץ"}, {en:"Cloud", de:"Wolke", he:"ענן"}, {en:"Sun", de:"Sonne", he:"שמש"}, {en:"Moon", de:"Mond", he:"ירח"}, {en:"Star", de:"Stern", he:"כוכב"}, {en:"Flower", de:"Blume", he:"פרח"}, {en:"River", de:"Fluss", he:"נהר"}, {en:"Forest", de:"Wald", he:"יער"}, {en:"Mountain", de:"Berg", he:"הר"},
-            // Animals
             {en:"Cat", de:"Katze", he:"חתול"}, {en:"Dog", de:"Hund", he:"כלב"}, {en:"Bird", de:"Vogel", he:"ציפור"}, {en:"Lion", de:"Löwe", he:"אריה"}, {en:"Elephant", de:"Elefant", he:"פיל"}, {en:"Butterfly", de:"Schmetterling", he:"פרפר"}, {en:"Fish", de:"Fisch", he:"דג"}, {en:"Horse", de:"Pferd", he:"סוס"}, {en:"Bee", de:"Biene", he:"דבורה"}, {en:"Bear", de:"Bär", he:"דוב"},
-            // Home
             {en:"House", de:"Haus", he:"בית"}, {en:"Book", de:"Buch", he:"ספר"}, {en:"Table", de:"Tisch", he:"שולחן"}, {en:"Chair", de:"Stuhl", he:"כיסא"}, {en:"Window", de:"Fenster", he:"חלון"}, {en:"Door", de:"Tür", he:"דלת"}, {en:"Key", de:"Schlüssel", he:"מפתח"}, {en:"Bed", de:"Bett", he:"מיטה"}, {en:"Lamp", de:"Lampe", he:"מנורה"}, {en:"Paper", de:"Papier", he:"נייר"},
-            // Food
             {en:"Water", de:"Wasser", he:"מים"}, {en:"Bread", de:"Brot", he:"לחם"}, {en:"Milk", de:"Milch", he:"חלב"}, {en:"Honey", de:"Honig", he:"דבש"}, {en:"Egg", de:"Ei", he:"ביצה"}, {en:"Cheese", de:"Käse", he:"גבינה"}, {en:"Fruit", de:"Frucht", he:"פרי"}, {en:"Salt", de:"Salz", he:"מלח"}, {en:"Sweet", de:"Süß", he:"מתוק"}, {en:"Cake", de:"Kuchen", he:"עוגה"},
-            // Emotions/Abstract
             {en:"Friend", de:"Freund", he:"חבר"}, {en:"Family", de:"Familie", he:"משפחה"}, {en:"Love", de:"Liebe", he:"אהבה"}, {en:"Happy", de:"Glücklich", he:"שמח"}, {en:"Good", de:"Gut", he:"טוב"}, {en:"Adventure", de:"Abenteuer", he:"הרפתקה"}, {en:"Time", de:"Zeit", he:"זמן"}, {en:"Dream", de:"Traum", he:"חלום"}, {en:"Music", de:"Musik", he:"מוזיקה"}, {en:"Peace", de:"Frieden", he:"שלום"},
-            // Colors
             {en:"Red", de:"Rot", he:"אדום"}, {en:"Blue", de:"Blau", he:"כחול"}, {en:"Green", de:"Grün", he:"ירוק"}, {en:"Yellow", de:"Gelb", he:"צהוב"}, {en:"White", de:"Weiß", he:"לבן"}, {en:"Black", de:"Schwarz", he:"שחור"}, {en:"Orange", de:"Orange", he:"כתום"}, {en:"Purple", de:"Lila", he:"סגול"}, {en:"Pink", de:"Rosa", he:"ורוד"}, {en:"Brown", de:"Braun", he:"חום"},
-            // Body Parts
             {en:"Hand", de:"Hand", he:"יד"}, {en:"Eye", de:"Auge", he:"עין"}, {en:"Head", de:"Kopf", he:"ראש"}, {en:"Mouth", de:"Mund", he:"פה"}, {en:"Nose", de:"Nase", he:"אף"}, {en:"Foot", de:"Fuß", he:"רגל"}, {en:"Heart", de:"Herz", he:"לב"}, {en:"Ear", de:"Ohr", he:"אוזן"}, {en:"Hair", de:"Haar", he:"שיער"}, {en:"Smile", de:"Lächeln", he:"חיוך"}
         ];
 
-        function setDailyContent() {
-            const now = new Date();
-            const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
-            document.getElementById('daily-task').innerText = tasks[dayOfYear % tasks.length];
-            // Uses a fallback loop so the word never disappears even if list isn't 365 yet
+        // BIRTHDAY DIRECTORY
+        const birthdays = {
+            "03-18": "Noelle",
+            "04-27": "Benjamin",
+            "07-27": "Leonora",
+            "08-15": "Jonathan",
+            "09-15": "Jens",
+            "11-22": "Adam"
+        };
+
+        // CONFETTI ANIMATION SCRIPT
+        let confettiStarted = false;
+        function startConfetti() {
+            if (confettiStarted) return;
+            confettiStarted = true;
+            
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+            
+            const colors = ['#ff6b9d','#ffd700','#7c3aed','#00d2ff','#ff6347','#98ff98','#ff85a2','#ffe66d','#a8edea'];
+            const pieces = Array.from({length: 80}, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                r: Math.random() * 6 + 3,
+                d: Math.random() * 80 + 20,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                tilt: Math.floor(Math.random() * 10) - 10,
+                tiltAngle: 0,
+                tiltAngleIncrement: Math.random() * 0.07 + 0.05,
+                shape: Math.random() > 0.5 ? 'circle' : 'rect'
+            }));
+            
+            let angle = 0;
+            function draw() {
+                if (document.getElementById('bday-bg').style.display === 'none') return;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                angle += 0.008;
+                pieces.forEach((p, i) => {
+                    ctx.save();
+                    ctx.translate(p.x + p.tilt, p.y);
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = 0.85;
+                    if (p.shape === 'circle') {
+                        ctx.beginPath();
+                        ctx.arc(0, 0, p.r, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        ctx.rotate(p.tiltAngle);
+                        ctx.fillRect(-p.r, -p.r, p.r * 2, p.r * 1.4);
+                    }
+                    ctx.restore();
+                    p.tiltAngle += p.tiltAngleIncrement;
+                    p.y += Math.cos(angle + p.d) + 1.2;
+                    p.x += Math.sin(angle) * 0.4;
+                    if (p.y > canvas.height) {
+                        p.y = -10;
+                        p.x = Math.random() * canvas.width;
+                    }
+                });
+                requestAnimationFrame(draw);
+            }
+            draw();
+        }
+
+        // SWAP BETWEEN CLOCK AND BIRTHDAY GREETING
+        function checkBirthday(now) {
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const todayStr = `${month}-${day}`;
+            
+            const bdayBg = document.getElementById('bday-bg');
+            const standardBg = document.getElementById('bg');
+            const analogClock = document.getElementById('analog-clock');
+            const bdayDisplay = document.getElementById('bday-display');
+
+            if (birthdays[todayStr]) {
+                // Update Name
+                document.getElementById('bday-name-right').innerText = birthdays[todayStr];
+                
+                // Show Birthday Elements, Hide Clock
+                bdayDisplay.style.display = 'block';
+                analogClock.style.display = 'none';
+                
+                // Show Confetti
+                bdayBg.style.display = 'block';
+                standardBg.style.opacity = '0';
+                startConfetti();
+            } else {
+                // Show Clock, Hide Birthday Elements
+                bdayDisplay.style.display = 'none';
+                analogClock.style.display = 'flex';
+                
+                // Show Standard Images
+                bdayBg.style.display = 'none';
+                standardBg.style.opacity = '1';
+                confettiStarted = false; 
+            }
+        }
+
+        function setDailyContent(now) {
+            const start = new Date(now.getFullYear(), 0, 0);
+            const dayOfYear = Math.floor((now - start) / 86400000);
             const word = words[dayOfYear % words.length];
             document.getElementById('word-en').innerText = word.en;
             document.getElementById('word-de').innerText = word.de;
@@ -143,12 +295,18 @@
 
         function updateTime() {
             const now = new Date();
+            
+            checkBirthday(now);
+
             document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
             document.getElementById('date').innerText = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+            
             const sec = now.getSeconds(), min = now.getMinutes(), hr = now.getHours();
             document.getElementById('sec-hand').style.transform = `rotate(${sec * 6}deg)`;
             document.getElementById('min-hand').style.transform = `rotate(${min * 6 + sec * 0.1}deg)`;
             document.getElementById('hour-hand').style.transform = `rotate(${(hr % 12) * 30 + min * 0.5}deg)`;
+            
+            setDailyContent(now);
         }
 
         function createAnalogNumbers() {
@@ -166,14 +324,17 @@
         }
 
         const images = ["https://images.unsplash.com/photo-1541701494587-cb58502866ab", "https://images.unsplash.com/photo-1441974231531-c6227db76b6e", "https://images.unsplash.com/photo-1500375592092-40eb2168fd21"];
-        document.getElementById('bg').style.backgroundImage = `url('${images[Math.floor(Math.random() * images.length)]}?q=80&w=2500&auto=format&fit=crop')`;
+        function setRandomBg() {
+            document.getElementById('bg').style.backgroundImage = `url('${images[Math.floor(Math.random() * images.length)]}?q=80&w=2500&auto=format&fit=crop')`;
+        }
+        setRandomBg();
+        setInterval(setRandomBg, 600000); 
 
         createAnalogNumbers();
-        updateTime();
-        setDailyContent();
+        updateTime(); 
         getWeather();
         setInterval(updateTime, 1000);
-        setInterval(getWeather, 1800000);
+        setInterval(getWeather, 1800000); 
     </script>
 </body>
 </html>
