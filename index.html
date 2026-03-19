@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -502,12 +501,39 @@
         const images = [
             "https://images.unsplash.com/photo-1541701494587-cb58502866ab",
             "https://images.unsplash.com/photo-1441974231531-c6227db76b6e",
-            "https://images.unsplash.com/photo-1500375592092-40eb2168fd21"
+            "https://images.unsplash.com/photo-1500375592092-40eb2168fd21",
+            "https://images.unsplash.com/photo-1501854140801-50d01698950b",
+            "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d",
+            "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa",
+            "https://images.unsplash.com/photo-1470770841072-f978cf4d019e",
+            "https://images.unsplash.com/photo-1506744038136-46273834b3fb",
+            "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07",
+            "https://images.unsplash.com/photo-1473448912268-2022ce9509d8",
+            "https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f",
+            "https://images.unsplash.com/photo-1502082553048-f009c37129b9",
+            "https://images.unsplash.com/photo-1502657877623-f66bf489d236",
+            "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1",
+            "https://images.unsplash.com/photo-1536431311719-398b6704d4cc",
+            "https://images.unsplash.com/photo-1504608524841-42fe6f032b4b",
+            "https://images.unsplash.com/photo-1437719417032-8595fd9e9dc6",
+            "https://images.unsplash.com/photo-1473116763249-2faaef81ccda",
+            "https://images.unsplash.com/photo-1470219556762-1771e7f9427d",
+            "https://images.unsplash.com/photo-1534067783941-51c9c23ecefd",
+            "https://images.unsplash.com/photo-1443632864897-14973fa006cf",
+            "https://images.unsplash.com/photo-1461696114087-397271a7aedc",
+            "https://images.unsplash.com/photo-1574169208507-84376144848b",
+            "https://images.unsplash.com/photo-1523821741446-edb2b68bb7a0",
+            "https://images.unsplash.com/photo-1543857778-c4a1a3e0b2eb"
         ];
         const bgEl = document.getElementById('bg');
 
         function cycleBg() {
             bgIndex = (bgIndex + 1) % images.length;
+            // In birthday mode just swap the image silently so it's ready when birthday ends
+            if (isBirthdayMode) {
+                bgEl.style.backgroundImage = `url('${images[bgIndex]}?q=80&w=2500&auto=format&fit=crop')`;
+                return;
+            }
             bgEl.style.opacity = '0';
             setTimeout(() => {
                 bgEl.style.backgroundImage = `url('${images[bgIndex]}?q=80&w=2500&auto=format&fit=crop')`;
@@ -515,7 +541,8 @@
             }, 1000);
         }
 
-        bgEl.style.backgroundImage = `url('${images[0]}?q=80&w=2500&auto=format&fit=crop')`;
+        bgIndex = Math.floor(Math.random() * images.length);
+        bgEl.style.backgroundImage = `url('${images[bgIndex]}?q=80&w=2500&auto=format&fit=crop')`;
         bgEl.style.opacity = '1';
         setInterval(cycleBg, 600000);
 
