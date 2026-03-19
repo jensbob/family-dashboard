@@ -151,6 +151,35 @@
             text-transform: uppercase;
             margin-bottom: 25px;
         }
+
+        /* BIRTHDAY COUNTDOWN */
+        .countdown-section {
+            display: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            padding-top: 18px;
+            margin-top: 20px;
+        }
+        .countdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+        }
+        .countdown-name {
+            font-size: 0.95rem;
+            font-weight: 300;
+            opacity: 0.9;
+        }
+        .countdown-days {
+            font-size: 0.85rem;
+            opacity: 0.5;
+            font-weight: 300;
+            letter-spacing: 0.05em;
+        }
+        .countdown-days.soon {
+            opacity: 0.9;
+            color: #ffd97a;
+        }
     </style>
 </head>
 <body>
@@ -169,7 +198,10 @@
             <div class="weather-info">
                 <div class="temp-row">
                     <div id="weather-icon">--</div>
-                    <div id="temp">--°C</div>
+                    <div>
+                        <div id="temp">--°C</div>
+                        <div id="weather-desc" style="font-size: 0.75rem; opacity: 0.5; font-weight: 300; margin-top: 2px; letter-spacing: 0.03em;"></div>
+                    </div>
                     <div style="font-size: 0.9rem; opacity: 0.7; margin-left: auto; text-align: right; line-height: 1.4;">
                         <div id="today-range">Today: -- / --</div>
                         <div id="tomorrow-range">Tomorrow: -- / --</div>
@@ -184,6 +216,11 @@
                     <div class="word-item"><span>Deutsch</span><div id="word-de" class="word-val">...</div></div>
                     <div class="word-item"><span>עברית</span><div id="word-he" class="word-val">...</div></div>
                 </div>
+            </div>
+
+            <div class="countdown-section" id="countdown-section">
+                <div class="label">Upcoming Birthdays</div>
+                <div id="countdown-list"></div>
             </div>
         </div>
         
@@ -428,6 +465,56 @@
             document.getElementById('word-en').innerText = word.en;
             document.getElementById('word-de').innerText = word.de;
             document.getElementById('word-he').innerText = word.he;
+
+            updateCountdown(now);
+        }
+
+        function updateCountdown(now) {
+            const todayMonth = now.getMonth() + 1;
+            const todayDay = now.getDate();
+            const todayStr = `${String(todayMonth).padStart(2,'0')}-${String(todayDay).padStart(2,'0')}`;
+
+            const upcoming = [];
+
+            for (const [dateStr, name] of Object.entries(birthdays)) {
+                // Skip today — birthday screen handles it
+                if (dateStr === todayStr) continue;
+
+                const [bMonth, bDay] = dateStr.split('-').map(Number);
+
+                // Calculate days until this birthday this year
+                let bdayThisYear = new Date(now.getFullYear(), bMonth - 1, bDay);
+                if (bdayThisYear < new Date(now.getFullYear(), todayMonth - 1, todayDay)) {
+                    // Already passed this year, use next year
+                    bdayThisYear = new Date(now.getFullYear() + 1, bMonth - 1, bDay);
+                }
+
+                const msUntil = bdayThisYear - new Date(now.getFullYear(), todayMonth - 1, todayDay);
+                const daysUntil = Math.round(msUntil / 86400000);
+
+                if (daysUntil <= 7) {
+                    upcoming.push({ name, daysUntil });
+                }
+            }
+
+            const section = document.getElementById('countdown-section');
+            const list = document.getElementById('countdown-list');
+
+            if (upcoming.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+
+            upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
+            section.style.display = 'block';
+            list.innerHTML = upcoming.map(({ name, daysUntil }) => {
+                const label = daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`;
+                const soonClass = daysUntil <= 2 ? 'soon' : '';
+                return `<div class="countdown-item">
+                    <span class="countdown-name">${name}</span>
+                    <span class="countdown-days ${soonClass}">${label}</span>
+                </div>`;
+            }).join('');
         }
 
         async function getWeather() {
@@ -435,16 +522,32 @@
                 const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=32.0684&longitude=34.8248&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto');
                 const data = await res.json();
                 const code = data.current_weather.weathercode;
-                const icons = {
-                    0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️',
-                    45:'🌫️', 48:'🌫️',
-                    51:'🌦️', 53:'🌦️', 55:'🌧️',
-                    61:'🌧️', 63:'🌧️', 65:'🌧️',
-                    71:'❄️', 73:'❄️', 75:'❄️',
-                    80:'🌦️', 81:'🌧️', 82:'⛈️',
-                    95:'⛈️', 96:'⛈️', 99:'⛈️'
+                const weather = {
+                    0:  { icon:'☀️',  desc:'Clear sky' },
+                    1:  { icon:'🌤️', desc:'Mainly clear' },
+                    2:  { icon:'⛅',  desc:'Partly cloudy' },
+                    3:  { icon:'☁️',  desc:'Overcast' },
+                    45: { icon:'🌫️', desc:'Foggy' },
+                    48: { icon:'🌫️', desc:'Icy fog' },
+                    51: { icon:'🌦️', desc:'Light drizzle' },
+                    53: { icon:'🌦️', desc:'Drizzle' },
+                    55: { icon:'🌧️', desc:'Heavy drizzle' },
+                    61: { icon:'🌧️', desc:'Light rain' },
+                    63: { icon:'🌧️', desc:'Rain' },
+                    65: { icon:'🌧️', desc:'Heavy rain' },
+                    71: { icon:'❄️',  desc:'Light snow' },
+                    73: { icon:'❄️',  desc:'Snow' },
+                    75: { icon:'❄️',  desc:'Heavy snow' },
+                    80: { icon:'🌦️', desc:'Rain showers' },
+                    81: { icon:'🌧️', desc:'Heavy showers' },
+                    82: { icon:'⛈️', desc:'Violent showers' },
+                    95: { icon:'⛈️', desc:'Thunderstorm' },
+                    96: { icon:'⛈️', desc:'Thunderstorm w/ hail' },
+                    99: { icon:'⛈️', desc:'Heavy thunderstorm' },
                 };
-                document.getElementById('weather-icon').innerText = icons[code] || '🌡️';
+                const w = weather[code] || { icon:'🌡️', desc:'Unknown' };
+                document.getElementById('weather-icon').innerText = w.icon;
+                document.getElementById('weather-desc').innerText = w.desc;
                 document.getElementById('temp').innerText = Math.round(data.current_weather.temperature) + '°C';
                 document.getElementById('today-range').innerText = `Today: ${Math.round(data.daily.temperature_2m_min[0])}° – ${Math.round(data.daily.temperature_2m_max[0])}°`;
                 document.getElementById('tomorrow-range').innerText = `Tomorrow: ${Math.round(data.daily.temperature_2m_min[1])}° – ${Math.round(data.daily.temperature_2m_max[1])}°`;
