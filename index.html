@@ -180,6 +180,158 @@
             opacity: 0.9;
             color: #ffd97a;
         }
+
+
+        /* ── RECENT ALERTS ── */
+        .recent-alerts-section {
+            display: none;
+            border-top: 1px solid rgba(255, 80, 80, 0.2);
+            padding-top: 18px;
+            margin-top: 20px;
+        }
+        .recent-alerts-section .label {
+            color: rgba(255, 140, 140, 0.7);
+        }
+        .recent-alert-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .recent-alert-item:last-child { border-bottom: none; }
+        .recent-alert-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .recent-alert-icon { font-size: 0.9rem; }
+        .recent-alert-type {
+            font-size: 0.85rem;
+            font-weight: 300;
+            opacity: 0.85;
+        }
+        .recent-alert-time {
+            font-size: 0.75rem;
+            opacity: 0.4;
+            font-weight: 300;
+            letter-spacing: 0.05em;
+        }
+
+        /* ── ROCKET ALERT OVERLAY ── */
+        #alert-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        #alert-overlay.active { display: flex; }
+
+        /* pulsing red background */
+        #alert-overlay.type-alert    { animation: alertPulse 0.6s ease-in-out infinite alternate; }
+        #alert-overlay.type-warning  { animation: warningPulse 1.2s ease-in-out infinite alternate; }
+        #alert-overlay.type-allclear { background: rgba(0, 120, 60, 0.92); }
+
+        @keyframes alertPulse  { from { background: rgba(180,0,0,0.88); } to { background: rgba(255,30,30,0.96); } }
+        @keyframes warningPulse{ from { background: rgba(160,80,0,0.85); } to { background: rgba(220,130,0,0.93); } }
+
+        #alert-icon   { font-size: clamp(4rem, 10vw, 8rem); margin-bottom: 16px; }
+        #alert-type   {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 5vw, 4.5rem);
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        #alert-city   {
+            font-family: 'Nunito', sans-serif;
+            font-size: clamp(1rem, 2.5vw, 2rem);
+            font-weight: 300;
+            color: rgba(255,255,255,0.9);
+            letter-spacing: 0.1em;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        #alert-time   {
+            font-family: 'Nunito', sans-serif;
+            font-size: clamp(0.8rem, 1.5vw, 1.1rem);
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+        #alert-dismiss {
+            margin-top: 40px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.35);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        /* ── CITY PICKER ── */
+        #city-picker-wrap {
+            position: relative;
+            margin-bottom: 6px;
+        }
+        #city-picker-btn {
+            font-size: 0.72rem;
+            font-weight: 300;
+            color: rgba(255,255,255,0.35);
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            color: inherit;
+            font-family: inherit;
+            transition: color 0.2s;
+            text-align: left;
+        }
+        #city-picker-btn:hover { color: rgba(255,255,255,0.65); }
+
+        #city-picker-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 50;
+            background: rgba(10,15,30,0.97);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            width: 260px;
+            max-height: 280px;
+            overflow-y: auto;
+            margin-top: 6px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+        }
+        #city-picker-dropdown.open { display: block; }
+        #city-search {
+            width: 100%;
+            background: none;
+            border: none;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 0.8rem;
+            padding: 10px 14px;
+            outline: none;
+            font-family: inherit;
+        }
+        #city-search::placeholder { color: rgba(255,255,255,0.25); }
+        .city-option {
+            padding: 8px 14px;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .city-option:hover { background: rgba(255,255,255,0.07); color: #fff; }
+        .city-option.selected { color: rgba(255,255,255,0.9); }
     </style>
 </head>
 <body>
@@ -195,6 +347,14 @@
             <div id="clock">00:00</div>
             <div id="date">Loading...</div>
             
+            <div id="city-picker-wrap">
+                <button id="city-picker-btn">Ramat Gan</button>
+                <div id="city-picker-dropdown">
+                    <input id="city-search" type="text" placeholder="Search city..."/>
+                    <div id="city-option-list"></div>
+                </div>
+            </div>
+
             <div class="weather-info">
                 <div class="temp-row">
                     <div id="weather-icon">--</div>
@@ -216,6 +376,12 @@
                     <div class="word-item"><span>Deutsch</span><div id="word-de" class="word-val">...</div></div>
                     <div class="word-item"><span>עברית</span><div id="word-he" class="word-val">...</div></div>
                 </div>
+            </div>
+
+
+            <div class="recent-alerts-section" id="recent-alerts-section">
+                <div class="label" id="recent-alerts-label">Recent Alerts — Ramat Gan</div>
+                <div id="recent-alerts-list"></div>
             </div>
 
             <div class="countdown-section" id="countdown-section">
@@ -240,9 +406,22 @@
             </div>
         </div>
 
+
+
+    </div>
+
+    <!-- ROCKET ALERT OVERLAY -->
+    <div id="alert-overlay">
+        <div id="alert-icon">🚀</div>
+        <div id="alert-type">Red Alert</div>
+        <div id="alert-city">רמת גן - מערב</div>
+        <div id="alert-time"></div>
+        <div id="alert-dismiss">tap anywhere to dismiss</div>
     </div>
 
     <script>
+        const WORKER_BASE = 'https://yellow-waterfall-020a.jb-jens-jb.workers.dev';
+
         // WORD LIBRARY
         const words = [
             {en:"Apple", de:"Apfel", he:"תפוח"}, {en:"Tree", de:"Baum", he:"עץ"}, {en:"Cloud", de:"Wolke", he:"ענן"}, {en:"Sun", de:"Sonne", he:"שמש"}, {en:"Moon", de:"Mond", he:"ירח"}, {en:"Star", de:"Stern", he:"כוכב"}, {en:"Flower", de:"Blume", he:"פרח"}, {en:"River", de:"Fluss", he:"נהר"}, {en:"Forest", de:"Wald", he:"יער"}, {en:"Mountain", de:"Berg", he:"הר"},
@@ -519,7 +698,7 @@
 
         async function getWeather() {
             try {
-                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=32.0684&longitude=34.8248&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto');
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${currentLat}&longitude=${currentLon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto`);
                 const data = await res.json();
                 const code = data.current_weather.weathercode;
                 const weather = {
@@ -649,11 +828,399 @@
         bgEl.style.opacity = '1';
         setInterval(cycleBg, 600000);
 
+        // ── CITY CONFIGURATION ──
+        // Loaded dynamically from Cloudflare worker /cities endpoint
+        let CITIES = []; // [{en, he, lat, lng}] sorted by English name
+
+        // Current selection — default Ramat Gan
+        let currentCityEn = 'Ramat Gan';
+        let currentCityHe = 'רמת גן - מערב';
+        let currentLat    = 32.0684;
+        let currentLon    = 34.8248;
+
+        async function loadCities() {
+            try {
+                const res = await fetch(WORKER_BASE + '/cities', { cache: 'no-store' });
+                const data = await res.json();
+                const cities = data.cities || {};
+                CITIES = Object.values(cities)
+                    .map(c => ({ en: c.en, he: c.he, lat: c.lat, lng: c.lng }))
+                    .sort((a, b) => a.en.localeCompare(b.en));
+                buildCityOptions('');
+            } catch(e) {
+                console.warn('Could not load cities:', e);
+            }
+        }
+
+        // Build dropdown options
+        function buildCityOptions(filter) {
+            const list = document.getElementById('city-option-list');
+            const filtered = filter
+                ? CITIES.filter(c => c.en.toLowerCase().includes(filter.toLowerCase()) || c.he.includes(filter))
+                : CITIES;
+            list.innerHTML = filtered.slice(0, 200).map(c =>
+                `<div class="city-option${c.he === currentCityHe ? ' selected' : ''}"
+                      data-en="${c.en.replace(/"/g,'&quot;')}" data-he="${c.he.replace(/"/g,'&quot;')}"
+                      data-lat="${c.lat}" data-lon="${c.lng}">
+                    ${c.en}
+                </div>`
+            ).join('');
+            list.querySelectorAll('.city-option').forEach(el => {
+                el.addEventListener('click', () => selectCity(
+                    el.dataset.en, el.dataset.he,
+                    parseFloat(el.dataset.lat), parseFloat(el.dataset.lon)
+                ));
+            });
+        }
+
+        function selectCity(en, he, lat, lon) {
+            currentCityEn = en;
+            currentCityHe = he;
+            currentLat    = lat;
+            currentLon    = lon;
+
+            document.getElementById('city-picker-btn').textContent = en;
+
+            const label = document.getElementById('recent-alerts-label');
+            if (label) label.textContent = 'Recent Alerts — ' + en;
+
+            document.getElementById('city-picker-dropdown').classList.remove('open');
+            document.getElementById('city-search').value = '';
+            buildCityOptions('');
+
+            getWeather();
+            loadAlertHistory();
+        }
+
+        // Picker open/close
+        document.getElementById('city-picker-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dd = document.getElementById('city-picker-dropdown');
+            dd.classList.toggle('open');
+            if (dd.classList.contains('open')) {
+                buildCityOptions('');
+                document.getElementById('city-search').focus();
+            }
+        });
+        document.getElementById('city-search').addEventListener('input', (e) => {
+            buildCityOptions(e.target.value);
+        });
+        document.addEventListener('click', () => {
+            document.getElementById('city-picker-dropdown').classList.remove('open');
+        });
+        document.getElementById('city-picker-dropdown').addEventListener('click', e => e.stopPropagation());
+
+        loadCities();
+
+
         createAnalogNumbers();
         updateTime();
         getWeather();
         setInterval(updateTime, 1000);
         setInterval(getWeather, 1800000);
+
+
+        // ── ROCKET ALERT SYSTEM ──
+        // WATCH_CITY is now dynamic — use currentCityHe in pollOref
+        let alertAudioCtx = null;
+        let currentAlertState = null; // null | 'warning' | 'alert' | 'allclear'
+        let sirenInterval = null;
+
+        function getAlertAudioCtx() {
+            if (!alertAudioCtx) alertAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            return alertAudioCtx;
+        }
+
+        // Rising wail siren for active rocket alert — plays for 5 seconds then stops
+        function playSiren() {
+            const ctx = getAlertAudioCtx();
+            stopSiren();
+            // Play 4 wail cycles immediately
+            [0, 2, 4, 6].forEach(offset => {
+                const osc  = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sawtooth';
+                const t = ctx.currentTime + offset;
+                osc.frequency.setValueAtTime(300, t);
+                osc.frequency.linearRampToValueAtTime(900, t + 1.8);
+                gain.gain.setValueAtTime(0.0, t);
+                gain.gain.linearRampToValueAtTime(0.35, t + 0.1);
+                gain.gain.linearRampToValueAtTime(0.35, t + 1.6);
+                gain.gain.linearRampToValueAtTime(0.0, t + 1.8);
+                osc.start(t);
+                osc.stop(t + 1.8);
+            });
+            // Auto-stop after 10 seconds
+            sirenInterval = setTimeout(stopSiren, 10000);
+        }
+
+        // Early warning — reverse chime (B → G# → E) played twice
+        function playEarlyWarning() {
+            const ctx = getAlertAudioCtx();
+            const chime = [
+                { freq: 987.77, start: 0.0,  dur: 0.5 },  // B5
+                { freq: 830.61, start: 0.25, dur: 0.5 },  // G#5
+                { freq: 659.25, start: 0.5,  dur: 0.9 },  // E5 — held
+            ];
+            // Play twice with a short gap between
+            [0, 1.8, 3.6, 5.4].forEach(groupOffset => {
+                chime.forEach(({ freq, start, dur }) => {
+                    const osc  = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = 'sine';
+                    const t = ctx.currentTime + groupOffset + start;
+                    osc.frequency.setValueAtTime(freq, t);
+                    gain.gain.setValueAtTime(0, t);
+                    gain.gain.linearRampToValueAtTime(0.28, t + 0.02);
+                    gain.gain.linearRampToValueAtTime(0.18, t + dur * 0.6);
+                    gain.gain.linearRampToValueAtTime(0, t + dur);
+                    osc.start(t);
+                    osc.stop(t + dur);
+                });
+            });
+        }
+
+        // Friendly three-note ascending chime for all-clear (E - G# - B)
+        function playAllClear() {
+            const ctx = getAlertAudioCtx();
+            stopSiren();
+            const notes = [
+                { freq: 659.25, start: 0.0,  dur: 0.5 },  // E5
+                { freq: 830.61, start: 0.25, dur: 0.5 },  // G#5
+                { freq: 987.77, start: 0.5,  dur: 0.9 },  // B5 — held longer
+            ];
+            notes.forEach(({ freq, start, dur }) => {
+                const osc  = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                const t = ctx.currentTime + start;
+                osc.frequency.setValueAtTime(freq, t);
+                gain.gain.setValueAtTime(0, t);
+                gain.gain.linearRampToValueAtTime(0.28, t + 0.02);
+                gain.gain.linearRampToValueAtTime(0.18, t + dur * 0.6);
+                gain.gain.linearRampToValueAtTime(0, t + dur);
+                osc.start(t);
+                osc.stop(t + dur);
+            });
+        }
+
+        function stopSiren() {
+            if (sirenInterval) { clearTimeout(sirenInterval); clearInterval(sirenInterval); sirenInterval = null; }
+        }
+
+        // tzevaadom threat values (differ from oref cat numbers)
+        const alertTypes = {
+            0:   { label: 'Red Alert — Missiles',        icon: '🚀', type: 'alert'   },
+            1:   { label: 'Hostile Aircraft',            icon: '✈️', type: 'alert'   },
+            2:   { label: 'Earthquake',                  icon: '⚠️', type: 'warning' },
+            3:   { label: 'Radiological Event',          icon: '☢️', type: 'alert'   },
+            4:   { label: 'Tsunami Warning',             icon: '🌊', type: 'alert'   },
+            5:   { label: 'Hostile Aircraft',            icon: '✈️', type: 'alert'   },
+            6:   { label: 'Unconventional Weapon',       icon: '🧪', type: 'alert'   },
+            7:   { label: 'Terrorist Infiltration',      icon: '🔫', type: 'alert'   },
+            13:  { label: 'Pre-Alert',                   icon: '⚡', type: 'warning' },
+        };
+
+        function showAlertOverlay(alertDef, cities, timeStr) {
+            const overlay = document.getElementById('alert-overlay');
+            document.getElementById('alert-icon').innerText = alertDef.icon;
+            document.getElementById('alert-type').innerText = alertDef.label;
+            document.getElementById('alert-city').innerText = cities.join(' · ');
+            document.getElementById('alert-time').innerText = timeStr;
+
+            overlay.className = 'active type-' + alertDef.type;
+            currentAlertState = alertDef.type;
+
+            if (alertDef.type === 'alert')   playSiren();
+            if (alertDef.type === 'warning') playEarlyWarning();
+        }
+
+        function showAllClearOverlay() {
+            const overlay = document.getElementById('alert-overlay');
+            document.getElementById('alert-icon').innerText = '✅';
+            document.getElementById('alert-type').innerText = 'All Clear';
+            document.getElementById('alert-city').innerText = 'Situation ended';
+            document.getElementById('alert-time').innerText = new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+
+            overlay.className = 'active type-allclear';
+            currentAlertState = 'allclear';
+            playAllClear();
+
+            // Auto-dismiss all-clear after 15 seconds
+            setTimeout(dismissAlert, 15000);
+        }
+
+        function dismissAlert() {
+            stopSiren();
+            const overlay = document.getElementById('alert-overlay');
+            overlay.className = '';
+            currentAlertState = null;
+        }
+
+        document.getElementById('alert-overlay').addEventListener('click', () => {
+            dismissAlert();
+        });
+
+
+        // ── RECENT ALERTS HISTORY ──
+        const threatIcons = { 0:'🚀', 1:'✈️', 2:'⚠️', 3:'☢️', 4:'🌊', 5:'✈️', 6:'🧪', 7:'🔫', 13:'⚡' };
+        const threatLabels = { 0:'Missiles', 1:'Aircraft', 2:'Earthquake', 3:'Radiological', 4:'Tsunami', 5:'Hostile Aircraft', 6:'Unconventional', 7:'Infiltration', 13:'Pre-Alert' };
+
+        async function loadAlertHistory() {
+            try {
+                const res = await fetch(WORKER_BASE + '/history', { cache: 'no-store' });
+                if (!res.ok) return;
+                const events = await res.json();
+
+                // Find events that contain our city, collect up to 3
+                const matching = [];
+                for (const event of events) {
+                    if (matching.length >= 3) break;
+                    for (const alert of (event.alerts || [])) {
+                        if (alert.cities && alert.cities.includes(currentCityHe)) {
+                            matching.push({
+                                time: alert.time,
+                                threat: alert.threat,
+                                isDrill: alert.isDrill
+                            });
+                            break; // one per event
+                        }
+                    }
+                }
+
+                const section = document.getElementById('recent-alerts-section');
+                const list = document.getElementById('recent-alerts-list');
+
+                if (matching.length === 0) {
+                    section.style.display = 'none';
+                    return;
+                }
+
+                section.style.display = 'block';
+                list.innerHTML = matching.map(a => {
+                    const d = new Date(a.time * 1000);
+                    const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                    const isToday = d.toDateString() === new Date().toDateString();
+                    const when = isToday ? `Today ${timeStr}` : `${dateStr} ${timeStr}`;
+                    const icon = threatIcons[a.threat] ?? '🚨';
+                    const label = threatLabels[a.threat] ?? 'Alert';
+                    const drillTag = a.isDrill ? ' <span style="opacity:0.4;font-size:0.7rem">(drill)</span>' : '';
+                    return `<div class="recent-alert-item">
+                        <div class="recent-alert-left">
+                            <span class="recent-alert-icon">${icon}</span>
+                            <span class="recent-alert-type">${label}${drillTag}</span>
+                        </div>
+                        <span class="recent-alert-time">${when}</span>
+                    </div>`;
+                }).join('');
+            } catch(e) {}
+        }
+
+        // Load on startup, refresh every 5 minutes
+        loadAlertHistory();
+        setInterval(loadAlertHistory, 300000);
+
+
+        // ── POLLING ──
+        // Persist lastOrefCat across page reloads within the same session
+        let lastOrefCat = sessionStorage.getItem('lastOrefCat') || null;
+
+
+
+        // ── OREF LOGGER ──
+        // Read log: JSON.parse(localStorage.getItem('orefLog'))
+        function logPayload(key, payload) {
+            let logs = [];
+            try {
+                const raw = localStorage.getItem(key);
+                if (raw) logs = JSON.parse(raw);
+                if (!Array.isArray(logs)) logs = [];
+            } catch(e) {
+                logs = [];
+                try { localStorage.removeItem(key); } catch(e2) {}
+            }
+            try {
+                const now = Date.now();
+                const twoHoursAgo = now - 7200000;
+                logs = logs.filter(e => new Date(e.ts).getTime() > twoHoursAgo);
+                logs.unshift({ ts: new Date().toISOString(), payload });
+                localStorage.setItem(key, JSON.stringify(logs));
+            } catch(e) {}
+        }
+
+        // oref title constants
+        const OREF_TITLE_PREWARNING = 'בדקות הקרובות צפויות להתקבל התרעות באזורך';
+        const OREF_TITLE_ALLCLEAR   = 'האירוע הסתיים';
+
+        // ── OREF POLL — pre-alert, active alerts, and all-clear ──
+        async function pollOref() {
+            try {
+                const res = await fetch(WORKER_BASE + '/oref', { cache: 'no-store' });
+                if (!res.ok) return;
+                const text = await res.text();
+                if (!text || text.trim() === '' || text.includes('Access Denied')) return;
+
+                let data;
+                try { data = JSON.parse(text); } catch(e) { 
+                    logPayload('orefLog', { error: 'JSON parse failed', raw: text.slice(0,200) });
+                    return;
+                }
+
+                if (!data || !data.cat) return;
+
+                const cat     = String(data.cat);
+                const title   = data.title || '';
+                const cities  = data.data || [];
+                const alertId = data.id || '';
+                const affectsUs = cities.includes(currentCityHe);
+
+                // Deduplicate by alert ID — same event repeats every 3s, log only once per ID
+                if (!alertId || hasSeenAlert(alertId)) return;
+                markAlertSeen(alertId);
+
+                // Log only new, unseen alerts
+                logPayload('orefLog', data);
+
+                const overlay = document.getElementById('alert-overlay');
+                const isWarningShowing = overlay && overlay.className.includes('type-warning');
+                const isAlertShowing   = overlay && overlay.className.includes('type-alert');
+
+                const timeStr = new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+
+                if ((cat === '1' || cat === '2') && affectsUs) {
+                    // Red alert / aircraft — always fires, overrides early warning
+                    showAlertOverlay(
+                        cat === '2' ? alertTypes[1] : alertTypes[0],
+                        [currentCityEn], timeStr
+                    );
+                } else if (cat === '10' && title === OREF_TITLE_PREWARNING && affectsUs) {
+                    // Early warning — only if screen is clear (no warning or alert already showing)
+                    if (!isWarningShowing && !isAlertShowing) {
+                        showAlertOverlay(
+                            { label: 'Early Warning', icon: '⚡', type: 'warning' },
+                            [currentCityEn], timeStr
+                        );
+                    }
+                } else if (cat === '10' && title === OREF_TITLE_ALLCLEAR && affectsUs) {
+                    // All-clear — always fires, works from any state
+                    showAllClearOverlay();
+                }
+
+            } catch(e) {}
+        }
+
+        // Clear any cached alert logs on page load
+        // oref — poll every 3 seconds
+        setInterval(pollOref, 3000);
+        pollOref();
+
     </script>
 </body>
 </html>
