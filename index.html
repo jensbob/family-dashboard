@@ -333,6 +333,11 @@
         .city-option:hover { background: rgba(255,255,255,0.07); color: #fff; }
         .city-option.selected { color: rgba(255,255,255,0.9); }
 
+        #version {
+            position: fixed; bottom: 8px; left: 12px; z-index: 20;
+            font-size: 0.55rem; opacity: 0.18; font-weight: 300;
+            letter-spacing: 0.08em; color: white; pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -420,6 +425,8 @@
         <div id="alert-time"></div>
         <div id="alert-dismiss">tap anywhere to dismiss</div>
     </div>
+
+    <div id="version">v1.0</div>
 
     <script>
         const WORKER_BASE = 'https://yellow-waterfall-020a.jb-jens-jb.workers.dev';
@@ -850,6 +857,16 @@
                 CITIES = Object.values(cities)
                     .map(c => ({ en: c.en, he: c.he, lat: c.lat, lng: c.lng }))
                     .sort((a, b) => a.en.localeCompare(b.en));
+
+                // If no saved city, or fix display name to match actual cities data
+                const match = CITIES.find(c => c.he === currentCityHe);
+                if (match && match.en !== currentCityEn) {
+                    currentCityEn = match.en;
+                    document.getElementById('city-picker-btn').textContent = currentCityEn;
+                    const ral = document.getElementById('recent-alerts-label');
+                    if (ral) ral.textContent = 'Recent Alerts — ' + currentCityEn;
+                }
+
                 buildCityOptions('');
             } catch(e) {
                 console.warn('Could not load cities:', e);
