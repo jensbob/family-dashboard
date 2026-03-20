@@ -332,6 +332,7 @@
         }
         .city-option:hover { background: rgba(255,255,255,0.07); color: #fff; }
         .city-option.selected { color: rgba(255,255,255,0.9); }
+
     </style>
 </head>
 <body>
@@ -409,6 +410,7 @@
 
 
     </div>
+
 
     <!-- ROCKET ALERT OVERLAY -->
     <div id="alert-overlay">
@@ -833,10 +835,12 @@
         let CITIES = []; // [{en, he, lat, lng}] sorted by English name
 
         // Current selection — default Ramat Gan
-        let currentCityEn = 'Ramat Gan';
-        let currentCityHe = 'רמת גן - מערב';
-        let currentLat    = 32.0684;
-        let currentLon    = 34.8248;
+        // Restore last selected city from localStorage, fallback to Ramat Gan
+        const _savedCity = (() => { try { return JSON.parse(localStorage.getItem('selectedCity')); } catch(e) { return null; } })();
+        let currentCityEn = _savedCity?.en || 'Ramat Gan';
+        let currentCityHe = _savedCity?.he || 'רמת גן - מערב';
+        let currentLat    = _savedCity?.lat || 32.0684;
+        let currentLon    = _savedCity?.lon || 34.8248;
 
         async function loadCities() {
             try {
@@ -853,10 +857,15 @@
         }
 
         // Build dropdown options
+        function normalizeSearch(s) {
+            return s.toLowerCase().replace(/['\'\-.,]/g, '').replace(/\s+/g, ' ').trim();
+        }
+
         function buildCityOptions(filter) {
             const list = document.getElementById('city-option-list');
-            const filtered = filter
-                ? CITIES.filter(c => c.en.toLowerCase().includes(filter.toLowerCase()) || c.he.includes(filter))
+            const norm = normalizeSearch(filter);
+            const filtered = norm
+                ? CITIES.filter(c => normalizeSearch(c.en).includes(norm) || c.he.includes(filter))
                 : CITIES;
             list.innerHTML = filtered.slice(0, 200).map(c =>
                 `<div class="city-option${c.he === currentCityHe ? ' selected' : ''}"
@@ -878,6 +887,7 @@
             currentCityHe = he;
             currentLat    = lat;
             currentLon    = lon;
+            try { localStorage.setItem('selectedCity', JSON.stringify({en, he, lat, lon})); } catch(e) {}
 
             document.getElementById('city-picker-btn').textContent = en;
 
@@ -911,6 +921,11 @@
         document.getElementById('city-picker-dropdown').addEventListener('click', e => e.stopPropagation());
 
         loadCities();
+
+        // Apply restored city to UI labels
+        document.getElementById('city-picker-btn').textContent = currentCityEn;
+        const _ral = document.getElementById('recent-alerts-label');
+        if (_ral) _ral.textContent = 'Recent Alerts — ' + currentCityEn;
 
 
         createAnalogNumbers();
@@ -1129,10 +1144,25 @@
 
 
         // ── POLLING ──
-        // Persist lastOrefCat across page reloads within the same session
-        let lastOrefCat = sessionStorage.getItem('lastOrefCat') || null;
 
 
+        // ── SEEN ALERT IDs — dedup across reloads, 2 hour window ──
+        function hasSeenAlert(id) {
+            try {
+                const seen = JSON.parse(localStorage.getItem('seenAlertIds') || '{}');
+                return !!seen[id];
+            } catch(e) { return false; }
+        }
+        function markAlertSeen(id) {
+            try {
+                let seen = {};
+                try { seen = JSON.parse(localStorage.getItem('seenAlertIds') || '{}'); } catch(e) {}
+                const now = Date.now();
+                seen[id] = now;
+                Object.keys(seen).forEach(k => { if (now - seen[k] > 7200000) delete seen[k]; });
+                localStorage.setItem('seenAlertIds', JSON.stringify(seen));
+            } catch(e) {}
+        }
 
         // ── OREF LOGGER ──
         // Read log: JSON.parse(localStorage.getItem('orefLog'))
@@ -1147,10 +1177,8 @@
                 try { localStorage.removeItem(key); } catch(e2) {}
             }
             try {
-                const now = Date.now();
-                const twoHoursAgo = now - 7200000;
-                logs = logs.filter(e => new Date(e.ts).getTime() > twoHoursAgo);
                 logs.unshift({ ts: new Date().toISOString(), payload });
+                if (logs.length > 50) logs.length = 50;
                 localStorage.setItem(key, JSON.stringify(logs));
             } catch(e) {}
         }
@@ -1168,10 +1196,12 @@
                 if (!text || text.trim() === '' || text.includes('Access Denied')) return;
 
                 let data;
-                try { data = JSON.parse(text); } catch(e) { 
-                    logPayload('orefLog', { error: 'JSON parse failed', raw: text.slice(0,200) });
+                try { data = JSON.parse(text); } catch(e) {
+                    console.warn('[oref] JSON parse failed:', text.slice(0, 100));
                     return;
                 }
+
+                console.log('[oref]', data?.cat ? 'cat:' + data.cat + ' cities:' + (data.data?.length||0) : 'no cat');
 
                 if (!data || !data.cat) return;
 
@@ -1217,6 +1247,8 @@
         }
 
         // Clear any cached alert logs on page load
+
+
         // oref — poll every 3 seconds
         setInterval(pollOref, 3000);
         pollOref();
