@@ -104,6 +104,13 @@
     const FOCUS_CITY = _params.get('city') || _saved?.en || '';
     let FOCUS_ZOOM = parseInt(_params.get('zoom'), 10) || 11;
 
+    // ── UI visibility ──
+    // Set to true or pass ?hide_controls=1 / ?hide_legend=1 in the URL
+    const HIDE_CONTROLS = false || _params.get('hide_controls') === '1';
+    const HIDE_LEGEND   = false || _params.get('hide_legend')   === '1';
+    if (HIDE_CONTROLS) document.getElementById('zoom-controls').style.display = 'none';
+    if (HIDE_LEGEND)   document.getElementById('legend').style.display = 'none';
+
     // ── Map ──
     const map = L.map('map', {
         zoomControl: false,
