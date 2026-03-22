@@ -124,6 +124,11 @@
     const WORKER_BASE  = 'https://yellow-waterfall-020a.jb-jens-jb.workers.dev';
     const POLYGONS_URL = 'polygon.json';
 
+    // ── Focus city ──
+    // Set to an English city name to center the map on that city at load.
+    // Leave empty ('') to show the full country view.
+    const FOCUS_CITY = '';
+
     // ── Map ──
     const map = L.map('map', {
         zoomControl: false,
@@ -364,10 +369,26 @@
         } catch(e) {}
     }
 
+    // ── Focus map on FOCUS_CITY if set ──
+    async function focusMap() {
+        if (!FOCUS_CITY) return;
+        try {
+            const res = await fetch(WORKER_BASE + '/cities', { cache: 'no-store' });
+            const data = await res.json();
+            const match = Object.values(data.cities || {}).find(
+                c => c.en.toLowerCase() === FOCUS_CITY.toLowerCase()
+            );
+            if (match) map.setView([match.lat, match.lng], 12);
+            else console.warn('[map] FOCUS_CITY not found:', FOCUS_CITY);
+        } catch(e) {
+            console.warn('[map] focusMap failed:', e.message);
+        }
+    }
+
     // ── Boot ──
     (async () => {
         await loadPolygons();
-        await loadHistory();
+        await Promise.all([loadHistory(), focusMap()]);
         updateStatus();
         setInterval(poll, 3000);
         poll();
