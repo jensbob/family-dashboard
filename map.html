@@ -305,6 +305,14 @@
     }
 
     async function loadCityNames() {
+        // Hardcoded translations for places not in the /cities API
+        Object.assign(heToEn, {
+            'נתב"ג':                          'Ben Gurion Airport',
+            'אשדוד - איזור תעשייה צפוני':     'Ashdod - North Industrial Zone',
+            'אשדוד -יא,יב,טו,יז,מרינה,סיטי': 'Ashdod - XI, XII, XV, XVII, Marina, City',
+            'מרכז אזורי מבואות חרמון':         'Hermon Gate Regional Center',
+            'מרכז אזורי מרום גליל':            'Upper Galilee Regional Center',
+        });
         try {
             const res  = await fetch(WORKER_BASE + '/cities', { cache: 'no-store' });
             const data = await res.json();
