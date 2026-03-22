@@ -461,7 +461,7 @@
             <div id="alert-dismiss">tap anywhere to dismiss</div>
         </div>
         <div id="alert-map">
-            <iframe src="map.html" allowfullscreen></iframe>
+            <iframe id="alert-map-frame" src="" allowfullscreen></iframe>
         </div>
     </div>
 
@@ -1123,6 +1123,9 @@
 
             overlay.className = 'active type-' + alertDef.type;
             currentAlertState = alertDef.type;
+
+            const mapFrame = document.getElementById('alert-map-frame');
+            mapFrame.src = 'map.html?city=' + encodeURIComponent(currentCityEn) + '&zoom=10';
 
             const now = Date.now();
             if (now - sirenLastPlayedAt >= SIREN_COOLDOWN_MS) {
