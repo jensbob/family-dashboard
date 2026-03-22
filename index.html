@@ -296,30 +296,6 @@
             border: none;
         }
 
-        /* ── TEST BUTTONS ── */
-        #test-controls {
-            position: fixed;
-            bottom: 16px;
-            right: 16px;
-            z-index: 200;
-            display: flex;
-            gap: 8px;
-        }
-        .test-btn {
-            font-family: 'Nunito', sans-serif;
-            font-size: 0.7rem;
-            font-weight: 300;
-            letter-spacing: 0.08em;
-            padding: 6px 12px;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(0,0,0,0.5);
-            color: rgba(255,255,255,0.5);
-            cursor: pointer;
-            backdrop-filter: blur(8px);
-            transition: background 0.15s, color 0.15s;
-        }
-        .test-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
 
         /* ── CITY PICKER ── */
         #city-picker-wrap {
@@ -478,15 +454,7 @@
         </div>
     </div>
 
-    <!-- TEST BUTTONS -->
-    <div id="test-controls">
-        <button class="test-btn" onclick="testAlert('alert')">Test Alert</button>
-        <button class="test-btn" onclick="testAlert('warning')">Test Warning</button>
-        <button class="test-btn" onclick="testAlert('allclear')">Test All Clear</button>
-        <button class="test-btn" onclick="dismissAlert()">Dismiss</button>
-    </div>
-
-    <div id="version">v1.0</div>
+<div id="version">v1.0</div>
 
     <script>
         const WORKER_BASE = 'https://yellow-waterfall-020a.jb-jens-jb.workers.dev';
