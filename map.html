@@ -191,6 +191,7 @@
     const map = L.map('map', {
         zoomControl: false,
         doubleClickZoom: false,
+        preferCanvas: true,
     }).setView([31.5, 35.0], 8);
 
     // Update FOCUS_ZOOM and URL when user zooms so it's bookmarkable
@@ -215,7 +216,7 @@
         if (!TILE_STYLES[key]) return;
         if (tileLayer) map.removeLayer(tileLayer);
         const s = TILE_STYLES[key];
-        tileLayer = L.tileLayer(s.url, { attribution: s.attribution, maxZoom: 18, detectRetina: false, ...s.opts }).addTo(map);
+        tileLayer = L.tileLayer(s.url, { attribution: s.attribution, maxZoom: 18, ...s.opts }).addTo(map);
         MAP_STYLE = key;
         if (!_mapInitialised) return; // skip URL update on initial load
         const p = new URLSearchParams(location.search);
