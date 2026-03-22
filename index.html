@@ -1144,6 +1144,10 @@
 
             overlay.className = 'active type-allclear';
             currentAlertState = 'allclear';
+
+            const mapFrame = document.getElementById('alert-map-frame');
+            mapFrame.src = 'map.html?city=' + encodeURIComponent(currentCityEn) + '&zoom=11&style=voyager&hide_controls=1&hide_legend=1';
+
             playAllClear();
 
             // Auto-dismiss all-clear after 15 seconds
