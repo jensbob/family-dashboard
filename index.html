@@ -1125,7 +1125,7 @@
             currentAlertState = alertDef.type;
 
             const mapFrame = document.getElementById('alert-map-frame');
-            mapFrame.src = 'map.html?city=' + encodeURIComponent(currentCityEn) + '&zoom=10&hide_controls=1&hide_legend=1';
+            mapFrame.src = 'map.html?city=' + encodeURIComponent(currentCityEn) + '&zoom=10&style=voyager&hide_controls=1&hide_legend=1';
 
             const now = Date.now();
             if (now - sirenLastPlayedAt >= SIREN_COOLDOWN_MS) {
