@@ -47,9 +47,9 @@ async function fetchShortHistory() {
   }
 }
 
-// Dedup key: prefer rid (from long history), fall back to alertDate|data composite
+// Dedup key: always use alertDate|data so events from both APIs (with and without rid) match
 function dedupKey(ev) {
-  return ev.rid ? String(ev.rid) : `${ev.alertDate}|${ev.data}`;
+  return `${(ev.alertDate || '').replace('T', ' ')}|${ev.data}`;
 }
 
 // Merge stored + fresh events: deduplicate, prune >12h, sort newest first
