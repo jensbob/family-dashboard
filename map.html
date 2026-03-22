@@ -37,6 +37,20 @@
         /* ghost polygon hover cursor */
         .leaflet-interactive { cursor: pointer; }
 
+        /* ── City hover tooltip ── */
+        .city-tooltip {
+            background: rgba(10, 13, 20, 0.88) !important;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            border-radius: 6px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
+            color: rgba(255,255,255,0.85) !important;
+            font-size: 0.75rem;
+            padding: 4px 9px !important;
+            white-space: nowrap;
+        }
+        .city-tooltip::before { display: none !important; }
+
 
         /* ── LEGEND ── */
         #legend {
@@ -224,6 +238,7 @@
     let activeStates = {};
     let seenIds = new Set();
     const cityHistory = {}; // cityHe → [{type, title, ts}, ...] newest first
+    let heToEn = {};        // hebrewName → englishName, populated by loadCityNames()
 
     const COLORS = {
         alert:    { fill: '#ff2020', border: '#ff5555' },
@@ -280,9 +295,23 @@
                     color:       'transparent',
                     weight:      0,
                     interactive: true,
-                }).addTo(map).on('click', e => showCityPopup(cityHe, e.latlng));
+                }).addTo(map)
+                  .bindTooltip(() => heToEn[cityHe] || cityHe, {
+                      sticky: true, className: 'city-tooltip', direction: 'top', offset: [0, -8]
+                  })
+                  .on('click', e => showCityPopup(cityHe, e.latlng));
             }
         }
+    }
+
+    async function loadCityNames() {
+        try {
+            const res  = await fetch(WORKER_BASE + '/cities', { cache: 'no-store' });
+            const data = await res.json();
+            for (const c of Object.values(data.cities || {})) {
+                if (c.he && c.en) heToEn[c.he] = c.en;
+            }
+        } catch(e) { console.warn('[map] loadCityNames failed:', e.message); }
     }
 
     async function loadCityDots() {
@@ -317,6 +346,7 @@
     };
 
     function showCityPopup(cityHe, latlng) {
+        const displayName = heToEn[cityHe] || cityHe;
         const events = cityHistory[cityHe] || [];
         const rows = events.map(ev => {
             const c = COLORS[ev.type];
@@ -327,7 +357,7 @@
             </div>`;
         }).join('');
         const html = `<div style="min-width:190px">
-            <div style="font-size:0.9rem;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.15)">${cityHe}</div>
+            <div style="font-size:0.9rem;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.15)">${displayName}</div>
             ${rows || '<div style="color:rgba(255,255,255,0.4);font-size:0.8rem">No recent events</div>'}
         </div>`;
         L.popup({ className: 'city-popup', closeButton: true, maxWidth: 280 })
@@ -551,7 +581,7 @@
     (async () => {
         await loadPolygons();
         drawAllGhosts();
-        await Promise.all([loadHistory(), focusMap()]);
+        await Promise.all([loadHistory(), focusMap(), loadCityNames()]);
         updateStatus();
         setInterval(poll, 3000);
         poll();
