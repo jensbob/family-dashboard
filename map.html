@@ -193,6 +193,7 @@
 
     // Update FOCUS_ZOOM and URL when user zooms so it's bookmarkable
     map.on('zoomend', () => {
+        if (!_mapInitialised) return; // skip URL update during initial load
         FOCUS_ZOOM = map.getZoom();
         const p = new URLSearchParams(location.search);
         p.set('zoom', FOCUS_ZOOM);
