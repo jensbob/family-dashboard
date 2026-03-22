@@ -181,9 +181,14 @@
     };
 
     // ── Map ──
+    // Samsung Tizen (Smart TV) browser has a canvas compositing bug that renders
+    // the overlay canvas as a white layer over tiles. Use SVG renderer on Tizen,
+    // canvas everywhere else (better performance / smoother pan+zoom).
+    const isTizen = /Tizen/i.test(navigator.userAgent);
     const map = L.map('map', {
         zoomControl: false,
         doubleClickZoom: false,
+        preferCanvas: !isTizen,
     }).setView([31.5, 35.0], 8);
 
     // Update FOCUS_ZOOM and URL when user zooms so it's bookmarkable
