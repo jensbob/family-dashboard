@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Israel Alert Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; background: #0d1117; font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; color: white; }
+
+        #map { width: 100%; height: 100vh; }
+
+        .leaflet-control-attribution {
+            font-size: 0.5rem !important; opacity: 0.25;
+            background: transparent !important; color: #fff !important;
+        }
+        .leaflet-control-attribution a { color: #fff !important; }
+
+        /* ── STATUS BAR ── */
+        #status-bar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            background: rgba(10, 13, 20, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 18px 32px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+        #status-title {
+            font-size: 1.4rem; font-weight: 600; letter-spacing: 0.04em;
+            color: rgba(255,255,255,0.9);
+        }
+        #alert-count {
+            font-size: 1.1rem; font-weight: 400;
+            color: rgba(255,255,255,0.4);
+            transition: color 0.4s;
+        }
+        #alert-count.has-alerts { color: #ff4444; font-weight: 600; }
+        #status-time {
+            font-size: 0.85rem; color: rgba(255,255,255,0.3);
+            letter-spacing: 0.06em;
+        }
+
+        /* ── LEGEND ── */
+        #legend {
+            position: fixed; bottom: 32px; left: 32px; z-index: 1000;
+            background: rgba(10, 13, 20, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 18px 22px;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .legend-row {
+            display: flex; align-items: center; gap: 14px;
+            font-size: 1rem; color: rgba(255,255,255,0.7);
+        }
+        .legend-swatch {
+            width: 20px; height: 20px; border-radius: 5px; flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        /* ── ZOOM BUTTONS ── */
+        #zoom-controls {
+            position: fixed; right: 32px; bottom: 32px; z-index: 1000;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .zoom-btn {
+            width: 56px; height: 56px;
+            background: rgba(10, 13, 20, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: white; font-size: 1.8rem; line-height: 1;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.15s;
+        }
+        .zoom-btn:hover { background: rgba(255,255,255,0.1); }
+
+        /* ── FALLBACK NOTICE ── */
+        #fallback-notice {
+            display: none;
+            position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(255,150,0,0.15);
+            border: 1px solid rgba(255,150,0,0.35);
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 0.9rem; color: rgba(255,200,80,0.85);
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="status-bar">
+    <div id="status-title">Israel Alert Map</div>
+    <div id="alert-count">No active alerts</div>
+    <div id="status-time">--:--:--</div>
+</div>
+
+<div id="legend">
+    <div class="legend-row"><div class="legend-swatch" style="background:#ff2020"></div>Red Alert — Missiles / Aircraft</div>
+    <div class="legend-row"><div class="legend-swatch" style="background:#9922cc"></div>Drone Infiltration</div>
+    <div class="legend-row"><div class="legend-swatch" style="background:#ffaa00"></div>Early Warning</div>
+    <div class="legend-row"><div class="legend-swatch" style="background:#00cc55"></div>All Clear (fading)</div>
+</div>
+
+<div id="zoom-controls">
+    <button class="zoom-btn" onclick="map.zoomIn()">+</button>
+    <button class="zoom-btn" onclick="map.zoomOut()">&minus;</button>
+</div>
+
+<div id="fallback-notice">Polygon data unavailable — showing city markers</div>
+
+<script>
+    const WORKER_BASE  = 'https://yellow-waterfall-020a.jb-jens-jb.workers.dev';
+    const POLYGONS_URL = 'https://oref-map.org/locations_polygons.json';
+
+    // ── Map ──
+    const map = L.map('map', {
+        zoomControl: false,
+        doubleClickZoom: false,
+        preferCanvas: true,
+    }).setView([31.5, 35.0], 8);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 18,
+    }).addTo(map);
+
+    // ── State ──
+    let polygonData = null;  // { hebrewName: [[lon,lat][], ...] }
+    let cityDots    = null;  // fallback: { hebrewName: {lat, lng} }
+    // activeStates: { hebrewName: { type, since, layers: L.Layer[] } }
+    let activeStates = {};
+    let seenIds = new Set();
+
+    const COLORS = {
+        alert:    { fill: '#ff2020', border: '#ff5555' },
+        drone:    { fill: '#9922cc', border: '#bb55ee' },
+        warning:  { fill: '#ffaa00', border: '#ffcc44' },
+        allclear: { fill: '#00cc55', border: '#44ee88' },
+    };
+    const PRIORITY  = { alert: 3, drone: 3, warning: 2, allclear: 0 };
+    const EXPIRE_MS = 5 * 60 * 1000; // 5 min auto-expire if no all-clear
+
+    // ── Load polygon boundaries ──
+    async function loadPolygons() {
+        try {
+            const res = await fetch(POLYGONS_URL, { cache: 'force-cache' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            polygonData = await res.json();
+            console.log('[map] polygons loaded:', Object.keys(polygonData).length);
+        } catch(e) {
+            console.warn('[map] polygon load failed, falling back to city dots:', e);
+            document.getElementById('fallback-notice').style.display = 'block';
+            await loadCityDots();
+        }
+    }
+
+    async function loadCityDots() {
+        try {
+            const res = await fetch(WORKER_BASE + '/cities', { cache: 'no-store' });
+            const data = await res.json();
+            cityDots = {};
+            for (const c of Object.values(data.cities || {})) {
+                if (c.he) cityDots[c.he] = { lat: c.lat, lng: c.lng };
+            }
+        } catch(e) {
+            console.warn('[map] city dots load failed:', e);
+        }
+    }
+
+    // ── Draw a city ──
+    function drawCity(cityHe, type) {
+        const existing = activeStates[cityHe];
+
+        // Don't downgrade a higher-priority alert
+        if (existing && PRIORITY[existing.type] > PRIORITY[type]) {
+            existing.since = Date.now(); // refresh timer
+            return;
+        }
+
+        // Remove previous layers for this city
+        if (existing) existing.layers.forEach(l => map.removeLayer(l));
+
+        const c = COLORS[type];
+        const layers = [];
+
+        if (polygonData && polygonData[cityHe]) {
+            for (const ring of polygonData[cityHe]) {
+                if (!Array.isArray(ring) || ring.length < 3) continue;
+                // Polygon file is [lon, lat]; Leaflet wants [lat, lon]
+                const latlngs = ring.map(([lon, lat]) => [lat, lon]);
+                const poly = L.polygon(latlngs, {
+                    fillColor:   c.fill,
+                    fillOpacity: 0.45,
+                    color:       c.border,
+                    opacity:     0.85,
+                    weight:      2,
+                }).addTo(map);
+                layers.push(poly);
+            }
+        } else if (cityDots && cityDots[cityHe]) {
+            const { lat, lng } = cityDots[cityHe];
+            const circle = L.circleMarker([lat, lng], {
+                radius:      12,
+                fillColor:   c.fill,
+                fillOpacity: 0.7,
+                color:       c.border,
+                weight:      2,
+            }).addTo(map);
+            layers.push(circle);
+        }
+
+        if (layers.length > 0) {
+            activeStates[cityHe] = { type, since: Date.now(), layers };
+        }
+    }
+
+    // ── All-clear: flash green, remove after 12 s ──
+    function clearCity(cityHe) {
+        const existing = activeStates[cityHe];
+        if (!existing) return;
+        const c = COLORS.allclear;
+        existing.layers.forEach(l => {
+            if (l.setStyle) l.setStyle({ fillColor: c.fill, color: c.border });
+        });
+        existing.type  = 'allclear';
+        existing.since = Date.now();
+        setTimeout(() => removeCity(cityHe), 12000);
+    }
+
+    function removeCity(cityHe) {
+        const s = activeStates[cityHe];
+        if (s) {
+            s.layers.forEach(l => map.removeLayer(l));
+            delete activeStates[cityHe];
+        }
+    }
+
+    // ── Auto-expire stale alerts ──
+    setInterval(() => {
+        const now = Date.now();
+        for (const [city, state] of Object.entries(activeStates)) {
+            if (state.type !== 'allclear' && now - state.since > EXPIRE_MS) {
+                removeCity(city);
+            }
+        }
+        updateStatus();
+    }, 15000);
+
+    // ── Status bar ──
+    function updateStatus() {
+        const active = Object.values(activeStates).filter(s => s.type !== 'allclear');
+        const el = document.getElementById('alert-count');
+        if (active.length === 0) {
+            el.textContent = 'No active alerts';
+            el.className = '';
+        } else {
+            el.textContent = active.length + ' active alert zone' + (active.length > 1 ? 's' : '');
+            el.className = 'has-alerts';
+        }
+        document.getElementById('status-time').textContent =
+            new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    // ── Classify alert ──
+    // Uses both title strings (robust) and cat numbers (fallback)
+    const TITLE_PREWARNING = 'בדקות הקרובות צפויות להתקבל התרעות באזורך';
+    const TITLE_ALLCLEAR   = 'האירוע הסתיים';
+
+    function classifyLive(cat, title) {
+        const t = (title || '').replace(/\s+/g, ' ').trim();
+        if (t === TITLE_ALLCLEAR)   return 'allclear';
+        if (t === TITLE_PREWARNING) return 'warning';
+        const threats = { '1':'alert', '2':'drone', '3':'alert', '4':'alert', '6':'alert', '7':'alert' };
+        if (threats[cat]) return threats[cat];
+        if (cat === '10' && t.includes('היכנסו')) return 'alert';
+        return null;
+    }
+
+    // History threat numbers → type
+    function classifyThreat(threat) {
+        const map = { 0:'alert', 1:'drone', 2:'warning', 3:'alert', 4:'alert', 5:'drone', 6:'alert', 7:'alert', 13:'warning' };
+        return map[threat] || null;
+    }
+
+    // ── Poll live OREF ──
+    async function poll() {
+        try {
+            const res = await fetch(WORKER_BASE + '/oref', { cache: 'no-store' });
+            if (!res.ok) return;
+            const text = await res.text();
+            if (!text || text.trim() === '' || text.includes('Access Denied')) return;
+
+            let data;
+            try { data = JSON.parse(text); } catch(e) { return; }
+            if (!data?.cat) return;
+
+            const id     = String(data.id || '');
+            const cat    = String(data.cat);
+            const title  = data.title || '';
+            const cities = data.data || [];
+
+            if (id && seenIds.has(id)) return;
+            if (id) {
+                seenIds.add(id);
+                if (seenIds.size > 300) seenIds = new Set([...seenIds].slice(-150));
+            }
+
+            const type = classifyLive(cat, title);
+            if (!type) return;
+
+            if (type === 'allclear') {
+                cities.forEach(c => clearCity(c));
+            } else {
+                cities.forEach(c => drawCity(c, type));
+            }
+            updateStatus();
+        } catch(e) {}
+    }
+
+    // ── Load recent history on startup (last 10 min) ──
+    async function loadHistory() {
+        try {
+            const res = await fetch(WORKER_BASE + '/history', { cache: 'no-store' });
+            if (!res.ok) return;
+            const events = await res.json();
+            const cutoff = Date.now() - 10 * 60 * 1000;
+
+            for (const event of (events || [])) {
+                for (const alert of (event.alerts || [])) {
+                    if (!alert.time || alert.time * 1000 < cutoff) continue;
+                    if (alert.isDrill) continue;
+                    const type = classifyThreat(alert.threat);
+                    if (!type) continue;
+                    (alert.cities || []).forEach(c => drawCity(c, type));
+                }
+            }
+            updateStatus();
+        } catch(e) {}
+    }
+
+    // ── Boot ──
+    (async () => {
+        await loadPolygons();
+        await loadHistory();
+        updateStatus();
+        setInterval(poll, 3000);
+        poll();
+    })();
+</script>
+</body>
+</html>
