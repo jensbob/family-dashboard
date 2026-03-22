@@ -985,6 +985,8 @@
         let alertAudioCtx = null;
         let currentAlertState = null; // null | 'warning' | 'alert' | 'allclear'
         let sirenInterval = null;
+        let sirenLastPlayedAt = 0;
+        const SIREN_COOLDOWN_MS = 30_000;
 
         function getAlertAudioCtx() {
             if (!alertAudioCtx) alertAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1097,8 +1099,12 @@
             overlay.className = 'active type-' + alertDef.type;
             currentAlertState = alertDef.type;
 
-            if (alertDef.type === 'alert')   playSiren();
-            if (alertDef.type === 'warning') playEarlyWarning();
+            const now = Date.now();
+            if (now - sirenLastPlayedAt >= SIREN_COOLDOWN_MS) {
+                sirenLastPlayedAt = now;
+                if (alertDef.type === 'alert')   playSiren();
+                if (alertDef.type === 'warning') playEarlyWarning();
+            }
         }
 
         function showAllClearOverlay() {
