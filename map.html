@@ -369,9 +369,10 @@
             .map(function(r) { return r.map(function(p) { return [p[1], p[0]]; }); });
         if (!rings.length) return;
         _cityHighlight = L.polygon(rings, {
-            fillOpacity: 0,
-            color: 'rgba(255,255,255,0.6)',
-            weight: 2,
+            fillColor:   '#aaaaaa',
+            fillOpacity: 0.35,
+            color:       'rgba(255,255,255,0.6)',
+            weight:      2,
             interactive: false,
         }).addTo(map);
     }
