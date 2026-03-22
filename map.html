@@ -156,6 +156,7 @@
         const p = new URLSearchParams(location.search);
         p.set('zoom', FOCUS_ZOOM);
         if (FOCUS_CITY) p.set('city', FOCUS_CITY);
+        if (MAP_STYLE) p.set('style', MAP_STYLE);
         history.replaceState(null, '', '?' + p.toString());
     });
 
