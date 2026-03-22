@@ -58,6 +58,28 @@
         }
         .zoom-btn:hover { background: rgba(255,255,255,0.1); }
 
+        /* ── STYLE PICKER ── */
+        #style-controls {
+            position: fixed; right: 32px; bottom: 136px; z-index: 1000;
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        .style-btn {
+            padding: 7px 14px;
+            background: rgba(10, 13, 20, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: rgba(255,255,255,0.5);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-size: 0.8rem; letter-spacing: 0.04em;
+            cursor: pointer; text-align: left;
+            transition: background 0.15s, color 0.15s;
+            white-space: nowrap;
+        }
+        .style-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .style-btn.active { border-color: rgba(255,255,255,0.4); color: #fff; }
+
         /* ── FALLBACK NOTICE ── */
         #fallback-notice {
             display: none;
@@ -82,6 +104,8 @@
     <div class="legend-row"><div class="legend-swatch" style="background:#ffaa00"></div>Early Warning</div>
     <div class="legend-row"><div class="legend-swatch" style="background:#00cc55"></div>All Clear (fading)</div>
 </div>
+
+<div id="style-controls"></div>
 
 <div id="zoom-controls">
     <button class="zoom-btn" onclick="map.zoomIn()">+</button>
@@ -108,8 +132,19 @@
     // Set to true or pass ?hide_controls=1 / ?hide_legend=1 in the URL
     const HIDE_CONTROLS = false || _params.get('hide_controls') === '1';
     const HIDE_LEGEND   = false || _params.get('hide_legend')   === '1';
-    if (HIDE_CONTROLS) document.getElementById('zoom-controls').style.display = 'none';
+    if (HIDE_CONTROLS) { document.getElementById('zoom-controls').style.display = 'none'; document.getElementById('style-controls').style.display = 'none'; }
     if (HIDE_LEGEND)   document.getElementById('legend').style.display = 'none';
+
+    // ── Tile styles ──
+    const TILE_STYLES = {
+        dark:      { label: 'Dark',      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',                                                           attribution: '&copy; OpenStreetMap &copy; CARTO',    opts: { subdomains: 'abcd' } },
+        light:     { label: 'Light',     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',                                                          attribution: '&copy; OpenStreetMap &copy; CARTO',    opts: { subdomains: 'abcd' } },
+        voyager:   { label: 'Voyager',   url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',                                                attribution: '&copy; OpenStreetMap &copy; CARTO',    opts: { subdomains: 'abcd' } },
+        osm:       { label: 'Street',    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',                                                                      attribution: '&copy; OpenStreetMap',                 opts: {} },
+        satellite: { label: 'Satellite', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',                           attribution: '&copy; Esri',                          opts: {} },
+        gray:      { label: 'Gray',      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',            attribution: '&copy; Esri',                          opts: { maxZoom: 16 } },
+        topo:      { label: 'Topo',      url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',                                                                        attribution: '&copy; OpenStreetMap &copy; OpenTopoMap', opts: { subdomains: 'abc', maxZoom: 17 } },
+    };
 
     // ── Map ──
     const map = L.map('map', {
@@ -127,11 +162,38 @@
         history.replaceState(null, '', '?' + p.toString());
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 18,
-    }).addTo(map);
+    // ── Active tile layer ──
+    // Set MAP_STYLE to a key from TILE_STYLES, or pass ?style= in the URL
+    let MAP_STYLE = _params.get('style') || 'dark';
+    if (!TILE_STYLES[MAP_STYLE]) MAP_STYLE = 'dark';
+    let tileLayer = null;
+
+    function setStyle(key) {
+        if (!TILE_STYLES[key]) return;
+        if (tileLayer) map.removeLayer(tileLayer);
+        const s = TILE_STYLES[key];
+        tileLayer = L.tileLayer(s.url, { attribution: s.attribution, maxZoom: 18, ...s.opts }).addTo(map);
+        MAP_STYLE = key;
+        // Update URL
+        const p = new URLSearchParams(location.search);
+        p.set('style', key);
+        history.replaceState(null, '', '?' + p.toString());
+        // Update button states
+        document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === key));
+    }
+
+    // Build style buttons
+    const styleContainer = document.getElementById('style-controls');
+    Object.entries(TILE_STYLES).forEach(([key, s]) => {
+        const btn = document.createElement('button');
+        btn.className = 'style-btn' + (key === MAP_STYLE ? ' active' : '');
+        btn.dataset.style = key;
+        btn.textContent = s.label;
+        btn.onclick = () => setStyle(key);
+        styleContainer.appendChild(btn);
+    });
+
+    setStyle(MAP_STYLE);
 
     // ── State ──
     let polygonData = null;  // { hebrewName: [[lon,lat][], ...] }
