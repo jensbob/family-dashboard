@@ -37,6 +37,9 @@
         /* ghost polygon hover cursor */
         .leaflet-interactive { cursor: pointer; }
 
+        /* ensure canvas layers have transparent background (Samsung TV fix) */
+        canvas.leaflet-zoom-animated { background: transparent !important; }
+
         /* ── City hover tooltip ── */
         .city-tooltip {
             background: rgba(10, 13, 20, 0.88) !important;
@@ -213,7 +216,7 @@
         if (!TILE_STYLES[key]) return;
         if (tileLayer) map.removeLayer(tileLayer);
         const s = TILE_STYLES[key];
-        tileLayer = L.tileLayer(s.url, { attribution: s.attribution, maxZoom: 18, ...s.opts }).addTo(map);
+        tileLayer = L.tileLayer(s.url, { attribution: s.attribution, maxZoom: 18, detectRetina: false, ...s.opts }).addTo(map);
         MAP_STYLE = key;
         if (!_mapInitialised) return; // skip URL update on initial load
         const p = new URLSearchParams(location.search);
@@ -294,7 +297,7 @@
                 if (!Array.isArray(ring) || ring.length < 3) continue;
                 const latlngs = ring.map(([lon, lat]) => [lat, lon]);
                 L.polygon(latlngs, {
-                    fillColor:   '#ffffff',
+                    fillColor:   '#000000',
                     fillOpacity: 0,
                     color:       'transparent',
                     weight:      0,
