@@ -232,9 +232,10 @@
         allclear: { fill: '#00cc55', border: '#44ee88' },
     };
     const PRIORITY  = { alert: 3, drone: 3, warning: 2, allclear: 0 };
-    const ALERT_EXPIRE_MS    = 60 * 60 * 1000; // red/drone/warning: 1 hour (matches oref-map)
-    const WARNING_EXPIRE_MS  = 60 * 60 * 1000; // early warning: 1 hour (matches oref-map)
-    const ALLCLEAR_EXPIRE_MS =  2 * 60 * 1000; // all-clear stays green for 2 min (matches oref-map)
+    const ALERT_EXPIRE_MS    =  1 * 60 * 60 * 1000; // polygon display: 1 hour
+    const WARNING_EXPIRE_MS  =  1 * 60 * 60 * 1000; // polygon display: 1 hour
+    const ALLCLEAR_EXPIRE_MS =      2 * 60 * 1000;  // all-clear green flash: 2 min
+    const HISTORY_WINDOW_MS  = 12 * 60 * 60 * 1000; // popup history: 12 hours
 
     // ── Load polygon boundaries ──
     async function loadPolygons() {
@@ -477,26 +478,29 @@
     // ── Load recent history on startup ──
     async function loadHistory() {
         try {
-            const res = await fetch(WORKER_BASE + '/alerts-history', { cache: 'no-store' });
+            const res = await fetch(WORKER_BASE + '/alarms-history', { cache: 'no-store' });
             if (!res.ok) return;
             const events = await res.json();
             if (!Array.isArray(events)) return;
 
             const now = Date.now();
-            const cutoff = now - ALERT_EXPIRE_MS;
+            const cutoff = now - HISTORY_WINDOW_MS;
 
             // Sort oldest→newest so later events win per city
             events.sort((a, b) => a.alertDate < b.alertDate ? -1 : 1);
 
-            // Determine final state per city AND populate full history
+            // Determine final polygon state per city (1h window) AND populate full history (12h)
+            const polygonCutoff = now - ALERT_EXPIRE_MS;
             const cityState = {}; // cityHe → { type, ts }
             for (const ev of events) {
                 const ts = new Date(ev.alertDate.replace(' ', 'T')).getTime();
                 if (isNaN(ts) || ts < cutoff) continue;
-                const type = classifyLive(String(ev.category), ev.title);
+                const title = ev.title || ev.category_desc || '';
+                const type = classifyLive(String(ev.category), title);
                 if (!type) continue;
-                cityState[ev.data] = { type, ts };
-                recordEvent(ev.data, type, ev.title, ts);
+                // Only track polygon state for events within the 1h display window
+                if (ts >= polygonCutoff) cityState[ev.data] = { type, ts };
+                recordEvent(ev.data, type, title, ts);
             }
             // recordEvent unshifts (newest first), but we processed oldest→newest,
             // so reverse each city's log to restore newest-first order
