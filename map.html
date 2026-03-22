@@ -58,27 +58,26 @@
         }
         .zoom-btn:hover { background: rgba(255,255,255,0.1); }
 
-        /* ── STYLE PICKER ── */
-        #style-controls {
-            position: fixed; right: 32px; bottom: 136px; z-index: 1000;
-            display: flex; flex-direction: column; gap: 4px;
+        /* ── CONTROLS (style dropdown + zoom) ── */
+        #controls {
+            position: fixed; right: 32px; bottom: 32px; z-index: 1000;
+            display: flex; flex-direction: column; align-items: stretch; gap: 8px;
         }
-        .style-btn {
-            padding: 7px 14px;
+        #style-select {
             background: rgba(10, 13, 20, 0.88);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 10px;
-            color: rgba(255,255,255,0.5);
+            color: rgba(255,255,255,0.7);
             font-family: 'Segoe UI', system-ui, sans-serif;
-            font-size: 0.8rem; letter-spacing: 0.04em;
-            cursor: pointer; text-align: left;
-            transition: background 0.15s, color 0.15s;
-            white-space: nowrap;
+            font-size: 0.85rem;
+            padding: 10px 12px;
+            cursor: pointer;
+            outline: none;
+            width: 100%;
         }
-        .style-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-        .style-btn.active { border-color: rgba(255,255,255,0.4); color: #fff; }
+        #style-select option { background: #0d1117; color: #fff; }
 
         /* ── FALLBACK NOTICE ── */
         #fallback-notice {
@@ -105,13 +104,13 @@
     <div class="legend-row"><div class="legend-swatch" style="background:#00cc55"></div>All Clear (fading)</div>
 </div>
 
-<div id="style-controls"></div>
-
-<div id="zoom-controls">
-    <button class="zoom-btn" onclick="map.zoomIn()">+</button>
-    <button class="zoom-btn" onclick="map.zoomOut()">&minus;</button>
+<div id="controls">
+    <select id="style-select"></select>
+    <div id="zoom-controls">
+        <button class="zoom-btn" onclick="map.zoomIn()">+</button>
+        <button class="zoom-btn" onclick="map.zoomOut()">&minus;</button>
+    </div>
 </div>
-<div id="zoom-label"></div>
 
 <div id="fallback-notice">Polygon data unavailable — showing city markers</div>
 
@@ -132,18 +131,17 @@
     // Set to true or pass ?hide_controls=1 / ?hide_legend=1 in the URL
     const HIDE_CONTROLS = false || _params.get('hide_controls') === '1';
     const HIDE_LEGEND   = false || _params.get('hide_legend')   === '1';
-    if (HIDE_CONTROLS) { document.getElementById('zoom-controls').style.display = 'none'; document.getElementById('style-controls').style.display = 'none'; }
+    if (HIDE_CONTROLS) document.getElementById('controls').style.display = 'none';
     if (HIDE_LEGEND)   document.getElementById('legend').style.display = 'none';
 
     // ── Tile styles ──
     const TILE_STYLES = {
-        dark:      { label: 'Dark',      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',                                                           attribution: '&copy; OpenStreetMap &copy; CARTO',    opts: { subdomains: 'abcd' } },
-        light:     { label: 'Light',     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',                                                          attribution: '&copy; OpenStreetMap &copy; CARTO',    opts: { subdomains: 'abcd' } },
-        voyager:   { label: 'Voyager',   url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',                                                attribution: '&copy; OpenStreetMap &copy; CARTO',    opts: { subdomains: 'abcd' } },
-        osm:       { label: 'Street',    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',                                                                      attribution: '&copy; OpenStreetMap',                 opts: {} },
-        satellite: { label: 'Satellite', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',                           attribution: '&copy; Esri',                          opts: {} },
-        gray:      { label: 'Gray',      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',            attribution: '&copy; Esri',                          opts: { maxZoom: 16 } },
-        topo:      { label: 'Topo',      url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',                                                                        attribution: '&copy; OpenStreetMap &copy; OpenTopoMap', opts: { subdomains: 'abc', maxZoom: 17 } },
+        dark:      { label: 'Dark',      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',                                                attribution: '&copy; OpenStreetMap &copy; CARTO',       opts: { subdomains: 'abcd' } },
+        light:     { label: 'Light',     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',                                               attribution: '&copy; OpenStreetMap &copy; CARTO',       opts: { subdomains: 'abcd' } },
+        voyager:   { label: 'Voyager',   url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',                                     attribution: '&copy; OpenStreetMap &copy; CARTO',       opts: { subdomains: 'abcd' } },
+        satellite: { label: 'Satellite', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',                attribution: '&copy; Esri',                             opts: {} },
+        gray:      { label: 'Gray',      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', attribution: '&copy; Esri',                             opts: { maxZoom: 16 } },
+        topo:      { label: 'Topo',      url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',                                                             attribution: '&copy; OpenStreetMap &copy; OpenTopoMap', opts: { subdomains: 'abc', maxZoom: 17 } },
     };
 
     // ── Map ──
@@ -174,24 +172,22 @@
         const s = TILE_STYLES[key];
         tileLayer = L.tileLayer(s.url, { attribution: s.attribution, maxZoom: 18, ...s.opts }).addTo(map);
         MAP_STYLE = key;
-        // Update URL
         const p = new URLSearchParams(location.search);
         p.set('style', key);
         history.replaceState(null, '', '?' + p.toString());
-        // Update button states
-        document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === key));
+        document.getElementById('style-select').value = key;
     }
 
-    // Build style buttons
-    const styleContainer = document.getElementById('style-controls');
+    // Build style dropdown
+    const styleSelect = document.getElementById('style-select');
     Object.entries(TILE_STYLES).forEach(([key, s]) => {
-        const btn = document.createElement('button');
-        btn.className = 'style-btn' + (key === MAP_STYLE ? ' active' : '');
-        btn.dataset.style = key;
-        btn.textContent = s.label;
-        btn.onclick = () => setStyle(key);
-        styleContainer.appendChild(btn);
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = s.label;
+        if (key === MAP_STYLE) opt.selected = true;
+        styleSelect.appendChild(opt);
     });
+    styleSelect.onchange = () => setStyle(styleSelect.value);
 
     setStyle(MAP_STYLE);
 
