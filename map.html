@@ -212,9 +212,9 @@
         allclear: { fill: '#00cc55', border: '#44ee88' },
     };
     const PRIORITY  = { alert: 3, drone: 3, warning: 2, allclear: 0 };
-    const ALERT_EXPIRE_MS   =  5 * 60 * 1000; // red/drone: 5 min
-    const WARNING_EXPIRE_MS = 15 * 60 * 1000; // early warning: 15 min
-    const ALLCLEAR_EXPIRE_MS = 5 * 60 * 1000; // all-clear stays green for 5 min then removed
+    const ALERT_EXPIRE_MS    = 60 * 60 * 1000; // red/drone/warning: 1 hour (matches oref-map)
+    const WARNING_EXPIRE_MS  = 60 * 60 * 1000; // early warning: 1 hour (matches oref-map)
+    const ALLCLEAR_EXPIRE_MS =  2 * 60 * 1000; // all-clear stays green for 2 min (matches oref-map)
 
     // ── Load polygon boundaries ──
     async function loadPolygons() {
