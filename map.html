@@ -125,7 +125,8 @@
     const POLYGONS_URL = 'polygon.json';
 
     // ── Focus city ──
-    // URL param takes priority: map.html?city=Ramat+Gan
+    // URL param takes priority: map.html?city=Ramat+Gan+-+West
+    // Use the English city names from the Pikud HaOref city list (same names shown in the dashboard city picker).
     // Falls back to the dashboard's selected city (localStorage), then full country view.
     const _saved = (() => { try { return JSON.parse(localStorage.getItem('selectedCity')); } catch(e) { return null; } })();
     const FOCUS_CITY = new URLSearchParams(location.search).get('city') || _saved?.en || '';
@@ -374,7 +375,8 @@
     async function focusMap() {
         if (!FOCUS_CITY) return;
         // If localStorage has coords for this city, use them directly
-        if (_saved?.lat && _saved?.lon && _saved?.en?.toLowerCase() === FOCUS_CITY.toLowerCase()) {
+        const needle = FOCUS_CITY.toLowerCase();
+        if (_saved?.lat && _saved?.lon && (_saved?.en?.toLowerCase() === needle || _saved?.en?.toLowerCase().startsWith(needle))) {
             map.setView([_saved.lat, _saved.lon], 12);
             return;
         }
@@ -382,8 +384,9 @@
         try {
             const res = await fetch(WORKER_BASE + '/cities', { cache: 'no-store' });
             const data = await res.json();
+            const needle = FOCUS_CITY.toLowerCase();
             const match = Object.values(data.cities || {}).find(
-                c => c.en.toLowerCase() === FOCUS_CITY.toLowerCase()
+                c => c.en.toLowerCase() === needle || c.en.toLowerCase().startsWith(needle)
             );
             if (match) map.setView([match.lat, match.lng], 12);
             else console.warn('[map] FOCUS_CITY not found:', FOCUS_CITY);
