@@ -304,9 +304,9 @@
                   .bindTooltip(() => heToEn[cityHe] || cityHe, {
                       sticky: true, className: 'city-tooltip', direction: 'top', offset: [0, -8]
                   })
-                  .on('mouseover', function() { this.setStyle({ color: 'rgba(255,255,255,0.35)', weight: 1.5 }); })
-                  .on('mouseout',  function() { this.setStyle({ color: 'transparent', weight: 0 }); })
-                  .on('click', function(e) { showCityHighlight(cityHe); showCityPopup(cityHe, e.latlng); });
+                  .on('mouseover', function() { showCityHighlight(cityHe, false); })
+                  .on('mouseout',  function() { clearCityHighlight(); })
+                  .on('click', function(e) { showCityHighlight(cityHe, true); showCityPopup(cityHe, e.latlng); });
             }
         }
     }
@@ -360,14 +360,17 @@
         allclear: 'All Clear',
     };
 
-    // Show a white outline for the clicked city; cleared when the popup closes.
-    function showCityHighlight(cityHe) {
+    // Show a gray filled polygon for a city with no active alert.
+    // lock=true: persists until popup closes (click). lock=false: cleared on mouseout (hover).
+    let _cityHighlightLocked = false;
+    function showCityHighlight(cityHe, lock) {
         if (_cityHighlight) { map.removeLayer(_cityHighlight); _cityHighlight = null; }
         if (!polygonData || !polygonData[cityHe]) return;
         const rings = getRings(polygonData[cityHe])
             .filter(function(r) { return Array.isArray(r) && r.length >= 3; })
             .map(function(r) { return r.map(function(p) { return [p[1], p[0]]; }); });
         if (!rings.length) return;
+        _cityHighlightLocked = !!lock;
         _cityHighlight = L.polygon(rings, {
             fillColor:   '#aaaaaa',
             fillOpacity: 0.35,
@@ -376,7 +379,12 @@
             interactive: false,
         }).addTo(map);
     }
+    function clearCityHighlight() {
+        if (_cityHighlightLocked) return;
+        if (_cityHighlight) { map.removeLayer(_cityHighlight); _cityHighlight = null; }
+    }
     map.on('popupclose', function() {
+        _cityHighlightLocked = false;
         if (_cityHighlight) { map.removeLayer(_cityHighlight); _cityHighlight = null; }
     });
 
@@ -429,7 +437,9 @@
                 }).addTo(map)
                   .bindTooltip(() => heToEn[cityHe] || cityHe, {
                       sticky: true, className: 'city-tooltip', direction: 'top', offset: [0, -8]
-                  });
+                  })
+                  .on('mouseover', function() { this.setStyle({ weight: 4, opacity: 1 }); })
+                  .on('mouseout',  function() { this.setStyle({ weight: 2, opacity: 0.85 }); });
                 layers.push(poly);
             }
         } else if (cityDots && cityDots[cityHe]) {
@@ -445,7 +455,7 @@
         }
 
         if (layers.length > 0) {
-            layers.forEach(function(l) { l.on('click', function(e) { showCityHighlight(cityHe); showCityPopup(cityHe, e.latlng); }); });
+            layers.forEach(function(l) { l.on('click', function(e) { showCityPopup(cityHe, e.latlng); }); });
             activeStates[cityHe] = { type, since, layers };
         }
     }
