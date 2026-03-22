@@ -478,11 +478,10 @@
     <script>
         const WORKER_BASE = 'https://yellow-waterfall-020a.jb-jens-jb.workers.dev';
 
-        // ── Set to true to show test alert buttons ──
+        // ── Set to true to show test alert buttons, or use ?test=1 in the URL ──
         const SHOW_TEST_BUTTONS = false;
-        if (SHOW_TEST_BUTTONS) {
-            const tc = document.getElementById('test-controls');
-            tc.style.display = 'flex';
+        if (SHOW_TEST_BUTTONS || new URLSearchParams(location.search).get('test') === '1') {
+            document.getElementById('test-controls').style.display = 'flex';
         }
 
         // WORD LIBRARY
