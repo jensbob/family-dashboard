@@ -18,30 +18,6 @@
         }
         .leaflet-control-attribution a { color: #fff !important; }
 
-        /* ── STATUS BAR ── */
-        #status-bar {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-            background: rgba(10, 13, 20, 0.88);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            padding: 18px 32px;
-            display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.07);
-        }
-        #status-title {
-            font-size: 1.4rem; font-weight: 600; letter-spacing: 0.04em;
-            color: rgba(255,255,255,0.9);
-        }
-        #alert-count {
-            font-size: 1.1rem; font-weight: 400;
-            color: rgba(255,255,255,0.4);
-            transition: color 0.4s;
-        }
-        #alert-count.has-alerts { color: #ff4444; font-weight: 600; }
-        #status-time {
-            font-size: 0.85rem; color: rgba(255,255,255,0.3);
-            letter-spacing: 0.06em;
-        }
 
         /* ── LEGEND ── */
         #legend {
@@ -99,12 +75,6 @@
 <body>
 
 <div id="map"></div>
-
-<div id="status-bar">
-    <div id="status-title">Israel Alert Map</div>
-    <div id="alert-count">No active alerts</div>
-    <div id="status-time">--:--:--</div>
-</div>
 
 <div id="legend">
     <div class="legend-row"><div class="legend-swatch" style="background:#ff2020"></div>Red Alert — Missiles / Aircraft</div>
@@ -291,20 +261,7 @@
         updateStatus();
     }, 15000);
 
-    // ── Status bar ──
-    function updateStatus() {
-        const active = Object.values(activeStates).filter(s => s.type !== 'allclear');
-        const el = document.getElementById('alert-count');
-        if (active.length === 0) {
-            el.textContent = 'No active alerts';
-            el.className = '';
-        } else {
-            el.textContent = active.length + ' active alert zone' + (active.length > 1 ? 's' : '');
-            el.className = 'has-alerts';
-        }
-        document.getElementById('status-time').textContent =
-            new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    }
+    function updateStatus() {}
 
     // ── Classify alert ──
     // Uses both title strings (robust) and cat numbers (fallback)
