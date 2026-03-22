@@ -117,6 +117,7 @@
     <button class="zoom-btn" onclick="map.zoomIn()">+</button>
     <button class="zoom-btn" onclick="map.zoomOut()">&minus;</button>
 </div>
+<div id="zoom-label"></div>
 
 <div id="fallback-notice">Polygon data unavailable — showing city markers</div>
 
@@ -131,7 +132,7 @@
     const _saved = (() => { try { return JSON.parse(localStorage.getItem('selectedCity')); } catch(e) { return null; } })();
     const _params = new URLSearchParams(location.search);
     const FOCUS_CITY = _params.get('city') || _saved?.en || '';
-    const FOCUS_ZOOM = parseInt(_params.get('zoom'), 10) || 11;
+    let FOCUS_ZOOM = parseInt(_params.get('zoom'), 10) || 11;
 
     // ── Map ──
     const map = L.map('map', {
@@ -139,6 +140,15 @@
         doubleClickZoom: false,
         preferCanvas: true,
     }).setView([31.5, 35.0], 8);
+
+    // Update FOCUS_ZOOM and URL when user zooms so it's bookmarkable
+    map.on('zoomend', () => {
+        FOCUS_ZOOM = map.getZoom();
+        const p = new URLSearchParams(location.search);
+        p.set('zoom', FOCUS_ZOOM);
+        if (FOCUS_CITY) p.set('city', FOCUS_CITY);
+        history.replaceState(null, '', '?' + p.toString());
+    });
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap &copy; CARTO',
