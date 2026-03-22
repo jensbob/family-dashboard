@@ -156,15 +156,28 @@
     // ── Load polygon boundaries ──
     async function loadPolygons() {
         try {
-            const res = await fetch(POLYGONS_URL, { cache: 'force-cache' });
+            const res = await fetch(POLYGONS_URL);
             if (!res.ok) throw new Error('HTTP ' + res.status);
             polygonData = await res.json();
             console.log('[map] polygons loaded:', Object.keys(polygonData).length);
         } catch(e) {
-            console.warn('[map] polygon load failed, falling back to city dots:', e);
+            console.error('[map] polygon load failed:', e.message || e);
+            document.getElementById('fallback-notice').textContent = 'Polygon data unavailable (' + (e.message || e) + ') — showing city markers';
             document.getElementById('fallback-notice').style.display = 'block';
             await loadCityDots();
         }
+    }
+
+    // ── Normalise polygon data into array of rings ──
+    // The file uses two formats:
+    //   flat single-polygon:  [[lon,lat], [lon,lat], ...]
+    //   nested multi-polygon: [[[lon,lat],...], [[lon,lat],...], ...]
+    function getRings(cityData) {
+        if (!Array.isArray(cityData) || cityData.length === 0) return [];
+        // If first element's first value is a number → flat single-polygon
+        if (typeof cityData[0][0] === 'number') return [cityData];
+        // Otherwise already an array of rings
+        return cityData;
     }
 
     async function loadCityDots() {
@@ -197,7 +210,7 @@
         const layers = [];
 
         if (polygonData && polygonData[cityHe]) {
-            for (const ring of polygonData[cityHe]) {
+            for (const ring of getRings(polygonData[cityHe])) {
                 if (!Array.isArray(ring) || ring.length < 3) continue;
                 // Polygon file is [lon, lat]; Leaflet wants [lat, lon]
                 const latlngs = ring.map(([lon, lat]) => [lat, lon]);
