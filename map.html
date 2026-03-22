@@ -243,6 +243,7 @@
     let seenIds = new Set();
     const cityHistory = {}; // cityHe → [{type, title, ts}, ...] newest first
     let heToEn = {};        // hebrewName → englishName, populated by loadCityNames()
+    let _cityHighlight = null; // dedicated highlight polygon shown while popup is open
 
     const COLORS = {
         alert:    { fill: '#ff2020', border: '#ff5555' },
@@ -305,7 +306,7 @@
                   })
                   .on('mouseover', function() { this.setStyle({ color: 'rgba(255,255,255,0.35)', weight: 1.5 }); })
                   .on('mouseout',  function() { this.setStyle({ color: 'transparent', weight: 0 }); })
-                  .on('click', e => showCityPopup(cityHe, e.latlng));
+                  .on('click', function(e) { showCityHighlight(cityHe); showCityPopup(cityHe, e.latlng); });
             }
         }
     }
@@ -358,6 +359,25 @@
         warning:  'Early Warning',
         allclear: 'All Clear',
     };
+
+    // Show a white outline for the clicked city; cleared when the popup closes.
+    function showCityHighlight(cityHe) {
+        if (_cityHighlight) { map.removeLayer(_cityHighlight); _cityHighlight = null; }
+        if (!polygonData || !polygonData[cityHe]) return;
+        const rings = getRings(polygonData[cityHe])
+            .filter(function(r) { return Array.isArray(r) && r.length >= 3; })
+            .map(function(r) { return r.map(function(p) { return [p[1], p[0]]; }); });
+        if (!rings.length) return;
+        _cityHighlight = L.polygon(rings, {
+            fillOpacity: 0,
+            color: 'rgba(255,255,255,0.6)',
+            weight: 2,
+            interactive: false,
+        }).addTo(map);
+    }
+    map.on('popupclose', function() {
+        if (_cityHighlight) { map.removeLayer(_cityHighlight); _cityHighlight = null; }
+    });
 
     function showCityPopup(cityHe, latlng) {
         const displayName = heToEn[cityHe] || cityHe;
@@ -424,7 +444,7 @@
         }
 
         if (layers.length > 0) {
-            layers.forEach(l => l.on('click', e => showCityPopup(cityHe, e.latlng)));
+            layers.forEach(function(l) { l.on('click', function(e) { showCityHighlight(cityHe); showCityPopup(cityHe, e.latlng); }); });
             activeStates[cityHe] = { type, since, layers };
         }
     }
