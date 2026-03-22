@@ -18,6 +18,25 @@
         }
         .leaflet-control-attribution a { color: #fff !important; }
 
+        /* ── City history popup ── */
+        .city-popup .leaflet-popup-content-wrapper {
+            background: rgba(10, 13, 20, 0.93);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+            color: white;
+            padding: 0;
+        }
+        .city-popup .leaflet-popup-content { margin: 14px 16px; }
+        .city-popup .leaflet-popup-tip { background: rgba(10, 13, 20, 0.93); }
+        .city-popup .leaflet-popup-close-button { color: rgba(255,255,255,0.4) !important; top: 8px; right: 10px; }
+        .city-popup .leaflet-popup-close-button:hover { color: white !important; background: none !important; }
+
+        /* ghost polygon hover cursor */
+        .leaflet-interactive { cursor: pointer; }
+
 
         /* ── LEGEND ── */
         #legend {
@@ -204,6 +223,7 @@
     // activeStates: { hebrewName: { type, since, layers: L.Layer[] } }
     let activeStates = {};
     let seenIds = new Set();
+    const cityHistory = {}; // cityHe → [{type, title, ts}, ...] newest first
 
     const COLORS = {
         alert:    { fill: '#ff2020', border: '#ff5555' },
@@ -243,6 +263,27 @@
         return cityData;
     }
 
+    // ── Draw invisible clickable polygons for every city ──
+    // These are canvas-rendered (preferCanvas:true) transparent polygons that handle
+    // all map clicks. Colored alert polygons have no click handler — they're pure visuals.
+    // Leaflet's canvas hit-detection is O(1) so 1400+ ghosts adds no per-click cost.
+    function drawAllGhosts() {
+        if (!polygonData) return;
+        for (const [cityHe, data] of Object.entries(polygonData)) {
+            for (const ring of getRings(data)) {
+                if (!Array.isArray(ring) || ring.length < 3) continue;
+                const latlngs = ring.map(([lon, lat]) => [lat, lon]);
+                L.polygon(latlngs, {
+                    fillColor:   '#ffffff',
+                    fillOpacity: 0,
+                    color:       'transparent',
+                    weight:      0,
+                    interactive: true,
+                }).addTo(map).on('click', e => showCityPopup(cityHe, e.latlng));
+            }
+        }
+    }
+
     async function loadCityDots() {
         try {
             const res = await fetch(WORKER_BASE + '/cities', { cache: 'no-store' });
@@ -256,13 +297,49 @@
         }
     }
 
+    // ── Popup helpers ──
+    function hm(ts) {
+        return new Date(ts).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jerusalem' });
+    }
+
+    function recordEvent(cityHe, type, title, ts = Date.now()) {
+        if (!cityHistory[cityHe]) cityHistory[cityHe] = [];
+        cityHistory[cityHe].unshift({ type, title, ts });
+        if (cityHistory[cityHe].length > 20) cityHistory[cityHe].length = 20;
+    }
+
+    const TYPE_LABEL = {
+        alert:    'Rockets / Missiles',
+        drone:    'Hostile Aircraft',
+        warning:  'Early Warning',
+        allclear: 'All Clear',
+    };
+
+    function showCityPopup(cityHe, latlng) {
+        const events = cityHistory[cityHe] || [];
+        const rows = events.map(ev => {
+            const c = COLORS[ev.type];
+            return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.07)">
+                <span style="width:10px;height:10px;border-radius:2px;background:${c.fill};flex-shrink:0;display:inline-block"></span>
+                <span style="flex:1;color:rgba(255,255,255,0.85);font-size:0.8rem">${TYPE_LABEL[ev.type] || ev.type}</span>
+                <span style="color:rgba(255,255,255,0.4);font-size:0.75rem;white-space:nowrap">${hm(ev.ts)}</span>
+            </div>`;
+        }).join('');
+        const html = `<div style="min-width:190px">
+            <div style="font-size:0.9rem;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.15)">${cityHe}</div>
+            ${rows || '<div style="color:rgba(255,255,255,0.4);font-size:0.8rem">No recent events</div>'}
+        </div>`;
+        L.popup({ className: 'city-popup', closeButton: true, maxWidth: 280 })
+            .setLatLng(latlng).setContent(html).openOn(map);
+    }
+
     // ── Draw a city ──
-    function drawCity(cityHe, type) {
+    function drawCity(cityHe, type, since = Date.now()) {
         const existing = activeStates[cityHe];
 
         // Don't downgrade a higher-priority alert
         if (existing && PRIORITY[existing.type] > PRIORITY[type]) {
-            existing.since = Date.now(); // refresh timer
+            existing.since = since; // refresh timer
             return;
         }
 
@@ -299,12 +376,14 @@
         }
 
         if (layers.length > 0) {
-            activeStates[cityHe] = { type, since: Date.now(), layers };
+            layers.forEach(l => l.on('click', e => showCityPopup(cityHe, e.latlng)));
+            activeStates[cityHe] = { type, since, layers };
         }
     }
 
     // ── All-clear: flash green, remove after 12 s ──
-    function clearCity(cityHe) {
+    function clearCity(cityHe, title = 'האירוע הסתיים') {
+        recordEvent(cityHe, 'allclear', title);
         const existing = activeStates[cityHe];
         if (!existing) return;
         const c = COLORS.allclear;
@@ -386,33 +465,58 @@
             if (!type) return;
 
             if (type === 'allclear') {
-                cities.forEach(c => clearCity(c));
+                cities.forEach(c => clearCity(c, title));
             } else {
-                cities.forEach(c => drawCity(c, type));
+                const ts = Date.now();
+                cities.forEach(c => { recordEvent(c, type, title, ts); drawCity(c, type, ts); });
             }
             updateStatus();
         } catch(e) {}
     }
 
-    // ── Load recent history on startup (last 10 min) ──
+    // ── Load recent history on startup ──
     async function loadHistory() {
         try {
-            const res = await fetch(WORKER_BASE + '/history', { cache: 'no-store' });
+            const res = await fetch(WORKER_BASE + '/alerts-history', { cache: 'no-store' });
             if (!res.ok) return;
             const events = await res.json();
-            const cutoff = Date.now() - 60 * 60 * 1000;
+            if (!Array.isArray(events)) return;
 
-            for (const event of (events || [])) {
-                for (const alert of (event.alerts || [])) {
-                    if (!alert.time || alert.time * 1000 < cutoff) continue;
-                    if (alert.isDrill) continue;
-                    const type = classifyThreat(alert.threat);
-                    if (!type) continue;
-                    (alert.cities || []).forEach(c => drawCity(c, type));
+            const now = Date.now();
+            const cutoff = now - ALERT_EXPIRE_MS;
+
+            // Sort oldest→newest so later events win per city
+            events.sort((a, b) => a.alertDate < b.alertDate ? -1 : 1);
+
+            // Determine final state per city AND populate full history
+            const cityState = {}; // cityHe → { type, ts }
+            for (const ev of events) {
+                const ts = new Date(ev.alertDate.replace(' ', 'T')).getTime();
+                if (isNaN(ts) || ts < cutoff) continue;
+                const type = classifyLive(String(ev.category), ev.title);
+                if (!type) continue;
+                cityState[ev.data] = { type, ts };
+                recordEvent(ev.data, type, ev.title, ts);
+            }
+            // recordEvent unshifts (newest first), but we processed oldest→newest,
+            // so reverse each city's log to restore newest-first order
+            for (const arr of Object.values(cityHistory)) arr.reverse();
+
+            // Draw each city in its final state
+            for (const [cityHe, { type, ts }] of Object.entries(cityState)) {
+                if (type === 'allclear') {
+                    // Only show all-clear if still within its short display window
+                    const remaining = ALLCLEAR_EXPIRE_MS - (now - ts);
+                    if (remaining > 0) {
+                        drawCity(cityHe, 'allclear', ts);
+                        setTimeout(() => removeCity(cityHe), remaining);
+                    }
+                } else {
+                    drawCity(cityHe, type, ts);
                 }
             }
             updateStatus();
-        } catch(e) {}
+        } catch(e) { console.warn('[history]', e); }
     }
 
     // ── Focus map on selected city if set ──
@@ -442,6 +546,7 @@
     // ── Boot ──
     (async () => {
         await loadPolygons();
+        drawAllGhosts();
         await Promise.all([loadHistory(), focusMap()]);
         updateStatus();
         setInterval(poll, 3000);
