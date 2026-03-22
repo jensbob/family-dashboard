@@ -593,6 +593,12 @@
     }
 
     // ── Boot ──
+    // Force canvas background transparent — Samsung TV applies white by default
+    document.querySelectorAll('#map canvas').forEach(function(c) { c.style.backgroundColor = 'transparent'; });
+    map.on('layeradd', function() {
+        document.querySelectorAll('#map canvas').forEach(function(c) { c.style.backgroundColor = 'transparent'; });
+    });
+
     (async () => {
         await loadPolygons();
         if (!HIDE_CONTROLS) drawAllGhosts();
