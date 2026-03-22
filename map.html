@@ -400,7 +400,7 @@
             const res = await fetch(WORKER_BASE + '/history', { cache: 'no-store' });
             if (!res.ok) return;
             const events = await res.json();
-            const cutoff = Date.now() - 10 * 60 * 1000;
+            const cutoff = Date.now() - 60 * 60 * 1000;
 
             for (const event of (events || [])) {
                 for (const alert of (event.alerts || [])) {
