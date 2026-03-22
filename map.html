@@ -163,7 +163,8 @@
     // Falls back to the dashboard's selected city (localStorage), then full country view.
     const _saved = (() => { try { return JSON.parse(localStorage.getItem('selectedCity')); } catch(e) { return null; } })();
     const _params = new URLSearchParams(location.search);
-    const FOCUS_CITY = _params.get('city') || (_saved && _saved.en) || '';
+    const FOCUS_CITY    = _params.get('city') || (_saved && _saved.en) || '';
+    const FOCUS_CITY_IN_URL = !!_params.get('city'); // true only if explicitly in URL
     let FOCUS_ZOOM = parseInt(_params.get('zoom'), 10) || 11;
 
     // ── UI visibility ──
@@ -195,7 +196,7 @@
         FOCUS_ZOOM = map.getZoom();
         const p = new URLSearchParams(location.search);
         p.set('zoom', FOCUS_ZOOM);
-        if (FOCUS_CITY) p.set('city', FOCUS_CITY);
+        if (FOCUS_CITY_IN_URL) p.set('city', FOCUS_CITY);
         if (MAP_STYLE) p.set('style', MAP_STYLE);
         history.replaceState(null, '', '?' + p.toString());
     });
@@ -205,6 +206,7 @@
     let MAP_STYLE = _params.get('style') || 'voyager';
     if (!TILE_STYLES[MAP_STYLE]) MAP_STYLE = 'dark';
     let tileLayer = null;
+    let _mapInitialised = false;
 
     function setStyle(key) {
         if (!TILE_STYLES[key]) return;
@@ -212,6 +214,7 @@
         const s = TILE_STYLES[key];
         tileLayer = L.tileLayer(s.url, { attribution: s.attribution, maxZoom: 18, ...s.opts }).addTo(map);
         MAP_STYLE = key;
+        if (!_mapInitialised) return; // skip URL update on initial load
         const p = new URLSearchParams(location.search);
         p.set('style', key);
         history.replaceState(null, '', '?' + p.toString());
@@ -590,6 +593,7 @@
         await loadPolygons();
         if (!HIDE_CONTROLS) drawAllGhosts();
         await Promise.all([loadHistory(), focusMap(), loadCityNames()]);
+        _mapInitialised = true;
         updateStatus();
         setInterval(poll, 3000);
         poll();
