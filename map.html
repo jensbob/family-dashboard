@@ -163,7 +163,7 @@
     // Falls back to the dashboard's selected city (localStorage), then full country view.
     const _saved = (() => { try { return JSON.parse(localStorage.getItem('selectedCity')); } catch(e) { return null; } })();
     const _params = new URLSearchParams(location.search);
-    const FOCUS_CITY = _params.get('city') || _saved?.en || '';
+    const FOCUS_CITY = _params.get('city') || (_saved && _saved.en) || '';
     let FOCUS_ZOOM = parseInt(_params.get('zoom'), 10) || 11;
 
     // ── UI visibility ──
@@ -487,7 +487,7 @@
 
             let data;
             try { data = JSON.parse(text); } catch(e) { return; }
-            if (!data?.cat) return;
+            if (!data || !data.cat) return;
 
             const id     = String(data.id || '');
             const cat    = String(data.cat);
@@ -566,7 +566,7 @@
         if (!FOCUS_CITY) return;
         // If localStorage has coords for this city, use them directly
         const needle = FOCUS_CITY.toLowerCase();
-        if (_saved?.lat && _saved?.lon && (_saved?.en?.toLowerCase() === needle || _saved?.en?.toLowerCase().startsWith(needle))) {
+        if (_saved && _saved.lat && _saved.lon && _saved.en && (_saved.en.toLowerCase() === needle || _saved.en.toLowerCase().startsWith(needle))) {
             map.setView([_saved.lat, _saved.lon], FOCUS_ZOOM);
             return;
         }
@@ -588,7 +588,7 @@
     // ── Boot ──
     (async () => {
         await loadPolygons();
-        drawAllGhosts();
+        if (!HIDE_CONTROLS) drawAllGhosts();
         await Promise.all([loadHistory(), focusMap(), loadCityNames()]);
         updateStatus();
         setInterval(poll, 3000);
