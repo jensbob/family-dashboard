@@ -68,10 +68,16 @@ async function refreshHistory(env) {
 // ── /alarms-history endpoint ──────────────────────────────────────────────────
 
 async function handleAlarmsHistory(env) {
-  // Combine KV (up to 12h) with a live OREF fetch (most recent ~4h) so the
-  // response is never stale even if the cron hasn't run yet.
-  const [stored, fresh] = await Promise.all([readKV(env), fetchOrefHistory()]);
-  const merged = mergeEvents(stored, fresh);
+  // Serve from KV cache (kept fresh by the 15-min cron).
+  // Only fall back to a live OREF fetch if KV is empty (e.g. first deploy).
+  const stored = await readKV(env);
+  if (stored.length > 0) {
+    return new Response(JSON.stringify(stored), { headers: CORS_HEADERS });
+  }
+  // KV empty — bootstrap from live OREF and prime the cache
+  const fresh  = await fetchOrefHistory();
+  const merged = mergeEvents([], fresh);
+  await env.HISTORY_STORE.put(HISTORY_KEY, JSON.stringify(merged));
   return new Response(JSON.stringify(merged), { headers: CORS_HEADERS });
 }
 
