@@ -226,7 +226,9 @@
             z-index: 100;
             align-items: center;
             justify-content: center;
-            flex-direction: column;
+            flex-direction: row;
+            gap: 4vw;
+            padding: 0 5vw;
         }
         #alert-overlay.active { display: flex; }
 
@@ -238,6 +240,12 @@
         @keyframes alertPulse  { from { background: rgba(180,0,0,0.88); } to { background: rgba(255,30,30,0.96); } }
         @keyframes warningPulse{ from { background: rgba(160,80,0,0.85); } to { background: rgba(220,130,0,0.93); } }
 
+        #alert-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+        }
         #alert-icon   { font-size: clamp(4rem, 10vw, 8rem); margin-bottom: 16px; }
         #alert-type   {
             font-family: 'Playfair Display', serif;
@@ -273,6 +281,45 @@
             letter-spacing: 0.15em;
             text-transform: uppercase;
         }
+        #alert-map {
+            flex: 1;
+            max-width: 700px;
+            height: 70vh;
+            border-radius: 16px;
+            border: 2px solid rgba(255,255,255,0.25);
+            overflow: hidden;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+        }
+        #alert-map iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* ── TEST BUTTONS ── */
+        #test-controls {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            z-index: 200;
+            display: flex;
+            gap: 8px;
+        }
+        .test-btn {
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 300;
+            letter-spacing: 0.08em;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.5);
+            color: rgba(255,255,255,0.5);
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            transition: background 0.15s, color 0.15s;
+        }
+        .test-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
 
         /* ── CITY PICKER ── */
         #city-picker-wrap {
@@ -419,11 +466,24 @@
 
     <!-- ROCKET ALERT OVERLAY -->
     <div id="alert-overlay">
-        <div id="alert-icon">🚀</div>
-        <div id="alert-type">Red Alert</div>
-        <div id="alert-city">רמת גן - מערב</div>
-        <div id="alert-time"></div>
-        <div id="alert-dismiss">tap anywhere to dismiss</div>
+        <div id="alert-info">
+            <div id="alert-icon">🚀</div>
+            <div id="alert-type">Red Alert</div>
+            <div id="alert-city">רמת גן - מערב</div>
+            <div id="alert-time"></div>
+            <div id="alert-dismiss">tap anywhere to dismiss</div>
+        </div>
+        <div id="alert-map">
+            <iframe src="https://oref-map.org/" allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <!-- TEST BUTTONS -->
+    <div id="test-controls">
+        <button class="test-btn" onclick="testAlert('alert')">Test Alert</button>
+        <button class="test-btn" onclick="testAlert('warning')">Test Warning</button>
+        <button class="test-btn" onclick="testAlert('allclear')">Test All Clear</button>
+        <button class="test-btn" onclick="dismissAlert()">Dismiss</button>
     </div>
 
     <div id="version">v1.0</div>
@@ -1163,6 +1223,25 @@
         // ── POLLING ──
 
 
+        // ── STALENESS CHECK — skip alerts whose ID encodes an old timestamp ──
+        // OREF IDs are numeric Unix timestamps (ms or seconds). If parseable and
+        // older than 60s, the alert is stale (e.g. a cached/replayed payload).
+        // Non-numeric or unrecognised formats always pass through.
+        function isAlertFresh(id) {
+            const n = parseInt(id, 10);
+            if (isNaN(n)) return true;
+            const now = Date.now();
+            if (n > 1_000_000_000_000 && n < 9_999_999_999_999) {
+                // 13-digit → milliseconds
+                return (now - n) < 60_000;
+            }
+            if (n > 1_000_000_000 && n < 9_999_999_999) {
+                // 10-digit → seconds
+                return (now - n * 1000) < 60_000;
+            }
+            return true; // unrecognised format — allow
+        }
+
         // ── SEEN ALERT IDs — dedup across reloads, 2 hour window ──
         function hasSeenAlert(id) {
             try {
@@ -1230,6 +1309,13 @@
 
                 // Deduplicate by alert ID — same event repeats every 3s, log only once per ID
                 if (!alertId || hasSeenAlert(alertId)) return;
+
+                // Staleness check — skip replayed/cached alerts older than 60s
+                if (!isAlertFresh(alertId)) {
+                    markAlertSeen(alertId); // prevent future replays of this stale ID
+                    return;
+                }
+
                 markAlertSeen(alertId);
 
                 // Log only new, unseen alerts
@@ -1269,6 +1355,18 @@
         // oref — poll every 3 seconds
         setInterval(pollOref, 3000);
         pollOref();
+
+        // ── TEST HELPERS ──
+        function testAlert(type) {
+            const timeStr = new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+            if (type === 'alert') {
+                showAlertOverlay(alertTypes[0], [currentCityEn], timeStr);
+            } else if (type === 'warning') {
+                showAlertOverlay({ label: 'Early Warning', icon: '⚡', type: 'warning' }, [currentCityEn], timeStr);
+            } else if (type === 'allclear') {
+                showAllClearOverlay();
+            }
+        }
 
     </script>
 </body>
