@@ -35,8 +35,9 @@
         .city-popup .leaflet-popup-close-button { color: rgba(255,255,255,0.4) !important; top: 8px; right: 10px; }
         .city-popup .leaflet-popup-close-button:hover { color: white !important; background: none !important; }
 
-        /* ghost polygon hover cursor */
+        /* ghost polygon hover cursor; suppress mouse-click focus ring but keep keyboard outline */
         .leaflet-interactive { cursor: pointer; }
+        .leaflet-interactive:focus:not(:focus-visible) { outline: none; }
 
 
         /* ── City hover tooltip ── */
@@ -297,6 +298,8 @@
                   .bindTooltip(() => heToEn[cityHe] || cityHe, {
                       sticky: true, className: 'city-tooltip', direction: 'top', offset: [0, -8]
                   })
+                  .on('mouseover', function() { this.setStyle({ color: 'rgba(255,255,255,0.35)', weight: 1.5 }); })
+                  .on('mouseout',  function() { this.setStyle({ color: 'transparent', weight: 0 }); })
                   .on('click', e => showCityPopup(cityHe, e.latlng));
             }
         }
@@ -397,7 +400,10 @@
                     color:       c.border,
                     opacity:     0.85,
                     weight:      2,
-                }).addTo(map);
+                }).addTo(map)
+                  .bindTooltip(() => heToEn[cityHe] || cityHe, {
+                      sticky: true, className: 'city-tooltip', direction: 'top', offset: [0, -8]
+                  });
                 layers.push(poly);
             }
         } else if (cityDots && cityDots[cityHe]) {
