@@ -106,8 +106,8 @@
 
 <div id="controls">
     <div id="zoom-controls">
-        <button class="zoom-btn" onclick="map.zoomIn()">+</button>
-        <button class="zoom-btn" onclick="map.zoomOut()">&minus;</button>
+        <button class="zoom-btn" onclick="map.zoomIn(); this.blur()">+</button>
+        <button class="zoom-btn" onclick="map.zoomOut(); this.blur()">&minus;</button>
     </div>
     <select id="style-select"></select>
 </div>
