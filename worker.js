@@ -119,7 +119,7 @@ async function handleAlarmsHistory(env) {
 
   if (stored.length === 0) {
     // First deploy: bootstrap KV from long history
-    const fresh  = await fetchLongHistory();
+    const { events: fresh } = await fetchLongHistory();
     const merged = mergeEvents([], fresh);
     await writeKV(env, merged);
     return new Response(JSON.stringify({ lastWrite: Date.now(), events: merged }), { headers: CORS_HEADERS });
@@ -156,8 +156,8 @@ export default {
 
     // /debug/long — raw result from fetchLongHistory()
     if (url.pathname === '/debug/long') {
-      const data = await fetchLongHistory();
-      return new Response(JSON.stringify({ count: data.length, events: data }), { headers: CORS_HEADERS });
+      const { events, error } = await fetchLongHistory();
+      return new Response(JSON.stringify({ count: events.length, error, events }), { headers: CORS_HEADERS });
     }
 
     // /debug/cron-log — what the last scheduled cron run actually saw
@@ -179,16 +179,17 @@ export default {
     // /debug/cron — manually trigger refreshHistory and report what happened
     if (url.pathname === '/debug/cron') {
       const { events: stored } = await readKV(env);
-      const fresh = await fetchLongHistory();
+      const { events: fresh, error } = await fetchLongHistory();
       await env.HISTORY_STORE.put('cron_log', JSON.stringify({
         ts: Date.now(),
         freshCount: fresh.length,
         storedCount: stored.length,
         skipped: fresh.length === 0,
+        error,
         triggeredBy: 'http',
       }));
       if (fresh.length === 0) {
-        return new Response(JSON.stringify({ result: 'skipped', reason: 'fetchLongHistory returned 0 events', storedCount: stored.length }), { headers: CORS_HEADERS });
+        return new Response(JSON.stringify({ result: 'skipped', reason: 'fetchLongHistory returned 0 events', error, storedCount: stored.length }), { headers: CORS_HEADERS });
       }
       const merged = mergeEvents(stored, fresh);
       await writeKV(env, merged);
