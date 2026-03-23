@@ -375,16 +375,8 @@
     }
 
     async function loadCityNames() {
-        // Hardcoded translations for places not in the /cities API
-        Object.assign(heToEn, {
-            'נתב"ג':                          'Ben Gurion Airport',
-            'אשדוד - איזור תעשייה צפוני':     'Ashdod - North Industrial Zone',
-            'אשדוד -יא,יב,טו,יז,מרינה,סיטי': 'Ashdod - XI, XII, XV, XVII, Marina, City',
-            'מרכז אזורי מבואות חרמון':         'Hermon Gate Regional Center',
-            'מרכז אזורי מרום גליל':            'Upper Galilee Regional Center',
-        });
         try {
-            const res  = await fetch(WORKER_BASE + '/cities', { cache: 'no-store' });
+            const res  = await fetch('cities.json');
             const data = await res.json();
             for (const c of Object.values(data.cities || {})) {
                 if (c.he && c.en) heToEn[c.he] = c.en;
@@ -394,7 +386,7 @@
 
     async function loadCityDots() {
         try {
-            const res = await fetch(WORKER_BASE + '/cities', { cache: 'no-store' });
+            const res = await fetch('cities.json', { cache: 'no-store' });
             const data = await res.json();
             cityDots = {};
             for (const c of Object.values(data.cities || {})) {
@@ -680,7 +672,7 @@
         }
         // Otherwise look up via /cities
         try {
-            const res = await fetch(WORKER_BASE + '/cities', { cache: 'no-store' });
+            const res = await fetch('cities.json', { cache: 'no-store' });
             const data = await res.json();
             const needle = FOCUS_CITY.toLowerCase();
             const match = Object.values(data.cities || {}).find(

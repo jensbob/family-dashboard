@@ -904,7 +904,7 @@
 
         async function loadCities() {
             try {
-                const res = await fetch(WORKER_BASE + '/cities', { cache: 'no-store' });
+                const res = await fetch('cities.json');
                 const data = await res.json();
                 const cities = data.cities || {};
                 CITIES = Object.values(cities)
