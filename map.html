@@ -693,16 +693,18 @@
         Object.keys(activeStates).forEach(function(city) { removeCity(city); });
         // For each city with history, find its most-recent event at/before targetTs
         for (var cityHe in cityHistory) {
-            var events = cityHistory[cityHe]; // newest first
+            var events = cityHistory[cityHe];
+            // Find the most recent event at/before targetTs (order-independent scan)
+            var best = null;
             for (var i = 0; i < events.length; i++) {
                 var ev = events[i];
-                if (ev.ts > targetTs) continue; // not happened yet
-                // This is the most recent event at/before targetTs
-                var expiry = ev.type === 'allclear' ? ALLCLEAR_EXPIRE_MS : ALERT_EXPIRE_MS;
-                if (targetTs - ev.ts <= expiry && ev.type !== 'allclear') {
-                    drawCity(cityHe, ev.type, ev.ts);
+                if (ev.ts <= targetTs && (!best || ev.ts > best.ts)) best = ev;
+            }
+            if (best) {
+                var expiry = best.type === 'warning' ? WARNING_EXPIRE_MS : ALERT_EXPIRE_MS;
+                if (best.type !== 'allclear' && targetTs - best.ts <= expiry) {
+                    drawCity(cityHe, best.type, best.ts);
                 }
-                break; // only consider most recent
             }
         }
     }
