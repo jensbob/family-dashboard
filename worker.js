@@ -67,24 +67,33 @@ function mergeEvents(stored, fresh) {
   return [...seen.values()].sort((a, b) => b.alertDate.localeCompare(a.alertDate));
 }
 
-// Read KV history (returns [] if empty or missing)
+// Read KV history — returns { lastWrite: ms|null, events: [] }
+// Handles both old format (plain array) and new format ({ lastWrite, events })
 async function readKV(env) {
   try {
     const raw = await env.HISTORY_STORE.get(HISTORY_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return { lastWrite: null, events: [] };
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return { lastWrite: null, events: parsed }; // old format
+    return { lastWrite: parsed.lastWrite || null, events: Array.isArray(parsed.events) ? parsed.events : [] };
   } catch (e) {
-    return [];
+    return { lastWrite: null, events: [] };
   }
+}
+
+// Write KV history with a lastWrite timestamp
+async function writeKV(env, events) {
+  await env.HISTORY_STORE.put(HISTORY_KEY, JSON.stringify({ lastWrite: Date.now(), events }));
 }
 
 // ── Cron: runs every 15 min ───────────────────────────────────────────────────
 // Calls the heavy endpoint, merges into KV, extends the rolling 12h window.
 
 async function refreshHistory(env) {
-  const [stored, fresh] = await Promise.all([readKV(env), fetchLongHistory()]);
+  const [{ events: stored }, fresh] = await Promise.all([readKV(env), fetchLongHistory()]);
   if (fresh.length === 0) return; // OREF API failed — keep existing cache intact
   const merged = mergeEvents(stored, fresh);
-  await env.HISTORY_STORE.put(HISTORY_KEY, JSON.stringify(merged));
+  await writeKV(env, merged);
 }
 
 // ── /alarms-history endpoint ──────────────────────────────────────────────────
@@ -92,20 +101,20 @@ async function refreshHistory(env) {
 // If KV is empty (first deploy) uses long history to bootstrap the cache.
 
 async function handleAlarmsHistory(env) {
-  const stored = await readKV(env);
+  const { lastWrite, events: stored } = await readKV(env);
 
   if (stored.length === 0) {
     // First deploy: bootstrap KV from long history
     const fresh  = await fetchLongHistory();
     const merged = mergeEvents([], fresh);
-    await env.HISTORY_STORE.put(HISTORY_KEY, JSON.stringify(merged));
-    return new Response(JSON.stringify(merged), { headers: CORS_HEADERS });
+    await writeKV(env, merged);
+    return new Response(JSON.stringify({ lastWrite: Date.now(), events: merged }), { headers: CORS_HEADERS });
   }
 
   // Normal path: KV (deep history) + short history (last ~1h, fills cron gap)
   const recent = await fetchShortHistory();
   const merged = mergeEvents(stored, recent);
-  return new Response(JSON.stringify(merged), { headers: CORS_HEADERS });
+  return new Response(JSON.stringify({ lastWrite, events: merged }), { headers: CORS_HEADERS });
 }
 
 // ── Worker entry point ────────────────────────────────────────────────────────

@@ -623,8 +623,11 @@
         try {
             const res = await fetch(WORKER_BASE + '/alarms-history', { cache: 'no-store' });
             if (!res.ok) return;
-            const events = await res.json();
-            if (!Array.isArray(events)) return;
+            const body = await res.json();
+            // Support both { lastWrite, events } (new) and plain array (old)
+            const events = Array.isArray(body) ? body : (body && Array.isArray(body.events) ? body.events : null);
+            if (!events) return;
+            if (body.lastWrite) console.log('[history] KV last written:', new Date(body.lastWrite).toISOString());
 
             const now = Date.now();
             const cutoff = now - HISTORY_WINDOW_MS;
