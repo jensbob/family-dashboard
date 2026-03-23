@@ -228,7 +228,7 @@
         <button id="tt-live-btn" onclick="goLive()">&#11044; LIVE</button>
     </div>
     <div id="tt-slider-row">
-        <span class="tt-label">12h ago</span>
+        <span class="tt-label">24h ago</span>
         <div id="tt-slider-wrap">
             <input type="range" id="tt-slider" min="0" max="1000" value="1000" oninput="onTTSlider(this.value)">
             <div id="tt-markers"></div>
@@ -345,7 +345,7 @@
     const ALERT_EXPIRE_MS    =  1 * 60 * 60 * 1000; // polygon display: 1 hour
     const WARNING_EXPIRE_MS  =  1 * 60 * 60 * 1000; // polygon display: 1 hour
     const ALLCLEAR_EXPIRE_MS =      2 * 60 * 1000;  // all-clear green flash: 2 min
-    const HISTORY_WINDOW_MS  = 12 * 60 * 60 * 1000; // popup history: 12 hours
+    const HISTORY_WINDOW_MS  = 24 * 60 * 60 * 1000; // popup history: 24 hours
 
     // ── Load polygon boundaries ──
     async function loadPolygons() {
@@ -848,6 +848,21 @@
             _ttPlayState.raf = requestAnimationFrame(_ttStep);
         }
     }
+
+    document.addEventListener('keydown', function(e) {
+        if (!isTimeTravelling) return;
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        e.preventDefault();
+        if (_ttPlayState) { cancelAnimationFrame(_ttPlayState.raf); _ttPlayState = null;
+            document.getElementById('tt-play-btn').innerHTML = '&#9654;';
+            document.getElementById('tt-play-btn').classList.remove('tt-playing');
+        }
+        var slider = document.getElementById('tt-slider');
+        var step = 1000 / (HISTORY_WINDOW_MS / 60000); // 1 minute in slider units
+        var val = Math.min(1000, Math.max(0, parseFloat(slider.value) + (e.key === 'ArrowRight' ? step : -step)));
+        slider.value = val;
+        onTTSlider(val);
+    });
 
     function goLive() {
         if (_ttPlayState) {
