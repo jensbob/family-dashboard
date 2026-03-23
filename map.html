@@ -114,6 +114,52 @@
         }
         #style-select option { background: #0d1117; color: #fff; }
 
+        /* ── TIME TRAVEL PANEL ── */
+        #time-travel-panel {
+            display: none;
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(10, 13, 20, 0.92);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 14px;
+            padding: 12px 18px;
+            flex-direction: column; gap: 8px;
+            min-width: 340px; max-width: 90vw;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+        }
+        #tt-header {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        }
+        #tt-time-display {
+            font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.9);
+            letter-spacing: 0.03em;
+        }
+        #tt-live-btn {
+            font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
+            padding: 4px 10px; border-radius: 20px; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5);
+            transition: all 0.15s;
+        }
+        #tt-live-btn.tt-is-live {
+            background: rgba(0,200,80,0.2); border-color: rgba(0,200,80,0.5);
+            color: #00cc55;
+        }
+        #tt-slider-row {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .tt-label {
+            font-size: 0.68rem; color: rgba(255,255,255,0.35); white-space: nowrap;
+        }
+        #tt-slider {
+            flex: 1; height: 4px; cursor: pointer;
+            accent-color: rgba(255,255,255,0.7);
+        }
+        .zoom-btn.tt-active {
+            background: rgba(60,80,120,0.9);
+            border-color: rgba(120,160,255,0.4);
+        }
+
         /* ── FALLBACK NOTICE ── */
         #fallback-notice {
             display: none;
@@ -143,8 +189,25 @@
     <div id="zoom-controls">
         <button class="zoom-btn" onclick="map.zoomIn(); this.blur()">+</button>
         <button class="zoom-btn" onclick="map.zoomOut(); this.blur()">&minus;</button>
+        <button class="zoom-btn" id="time-travel-btn" onclick="toggleTimeTravel()" title="Replay history">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+        </button>
     </div>
     <select id="style-select"></select>
+</div>
+
+<div id="time-travel-panel">
+    <div id="tt-header">
+        <span id="tt-time-display">Now</span>
+        <button id="tt-live-btn" onclick="goLive()">&#11044; LIVE</button>
+    </div>
+    <div id="tt-slider-row">
+        <span class="tt-label">12h ago</span>
+        <input type="range" id="tt-slider" min="0" max="1000" value="1000" oninput="onTTSlider(this.value)">
+        <span class="tt-label">Now</span>
+    </div>
 </div>
 
 <div id="fallback-notice">Polygon data unavailable — showing city markers</div>
@@ -484,6 +547,7 @@
 
     // ── Auto-expire stale alerts ──
     setInterval(() => {
+        if (isTimeTravelling) return;
         const now = Date.now();
         for (const [city, state] of Object.entries(activeStates)) {
             const expiry = state.type === 'warning' ? WARNING_EXPIRE_MS : ALERT_EXPIRE_MS;
@@ -519,6 +583,7 @@
 
     // ── Poll live OREF ──
     async function poll() {
+        if (isTimeTravelling) return;
         try {
             const res = await fetch(WORKER_BASE + '/oref', { cache: 'no-store' });
             if (!res.ok) return;
@@ -623,6 +688,77 @@
         } catch(e) {
             console.warn('[map] focusMap failed:', e.message);
         }
+    }
+
+    // ── Time travel ──
+    let isTimeTravelling = false;
+
+    function replayAtTime(targetTs) {
+        // Clear current polygons
+        Object.keys(activeStates).forEach(function(city) { removeCity(city); });
+        // For each city with history, find its most-recent event at/before targetTs
+        for (var cityHe in cityHistory) {
+            var events = cityHistory[cityHe]; // newest first
+            for (var i = 0; i < events.length; i++) {
+                var ev = events[i];
+                if (ev.ts > targetTs) continue; // not happened yet
+                // This is the most recent event at/before targetTs
+                var expiry = ev.type === 'allclear' ? ALLCLEAR_EXPIRE_MS : ALERT_EXPIRE_MS;
+                if (targetTs - ev.ts <= expiry && ev.type !== 'allclear') {
+                    drawCity(cityHe, ev.type, ev.ts);
+                }
+                break; // only consider most recent
+            }
+        }
+    }
+
+    function updateTTDisplay(sliderVal) {
+        var max = 1000;
+        if (sliderVal >= max) {
+            document.getElementById('tt-time-display').textContent = 'Live';
+            document.getElementById('tt-live-btn').classList.add('tt-is-live');
+            return;
+        }
+        document.getElementById('tt-live-btn').classList.remove('tt-is-live');
+        var targetTs = Date.now() - HISTORY_WINDOW_MS + (sliderVal / max) * HISTORY_WINDOW_MS;
+        var timeStr = new Date(targetTs).toLocaleTimeString('he-IL', {
+            hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jerusalem'
+        });
+        var agoMin = Math.round((Date.now() - targetTs) / 60000);
+        var agoStr = agoMin < 60 ? agoMin + 'm ago' : (Math.floor(agoMin / 60) + 'h ' + (agoMin % 60) + 'm ago');
+        document.getElementById('tt-time-display').textContent = timeStr + '  ·  ' + agoStr;
+    }
+
+    function onTTSlider(val) {
+        val = parseInt(val);
+        updateTTDisplay(val);
+        if (val >= 1000) { goLive(); return; }
+        isTimeTravelling = true;
+        var targetTs = Date.now() - HISTORY_WINDOW_MS + (val / 1000) * HISTORY_WINDOW_MS;
+        replayAtTime(targetTs);
+    }
+
+    function toggleTimeTravel() {
+        var panel = document.getElementById('time-travel-panel');
+        var btn   = document.getElementById('time-travel-btn');
+        if (panel.style.display === 'flex') {
+            goLive();
+        } else {
+            isTimeTravelling = true;
+            panel.style.display = 'flex';
+            btn.classList.add('tt-active');
+            document.getElementById('tt-slider').value = 1000;
+            updateTTDisplay(1000);
+        }
+    }
+
+    function goLive() {
+        isTimeTravelling = false;
+        document.getElementById('time-travel-panel').style.display = 'none';
+        document.getElementById('time-travel-btn').classList.remove('tt-active');
+        document.getElementById('tt-live-btn').classList.add('tt-is-live');
+        Object.keys(activeStates).forEach(function(city) { removeCity(city); });
+        loadHistory();
     }
 
     (async () => {
