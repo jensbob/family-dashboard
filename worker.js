@@ -132,23 +132,16 @@ export default {
       return handleAlarmsHistory(env);
     }
 
-    // Simple proxy routes (pass-through to external APIs)
+    // Simple proxy routes
     let targetUrl, referer;
     if (url.pathname === '/history') {
       targetUrl = 'https://api.tzevaadom.co.il/alerts-history';
       referer   = 'https://www.tzevaadom.co.il/';
-    } else if (url.pathname === '/alerts-history') {
-      targetUrl = 'https://www.oref.org.il/warningMessages/alert/History/AlertsHistory.json';
-      referer   = 'https://www.oref.org.il/';
     } else if (url.pathname === '/oref') {
       targetUrl = 'https://www.oref.org.il/WarningMessages/alert/alerts.json';
       referer   = 'https://www.oref.org.il/';
-    } else if (url.pathname === '/cities') {
-      targetUrl = 'https://www.tzevaadom.co.il/static/cities.json';
-      referer   = 'https://www.tzevaadom.co.il/';
     } else {
-      targetUrl = 'https://api.tzevaadom.co.il/notifications';
-      referer   = 'https://www.tzevaadom.co.il/';
+      return new Response('Not found', { status: 404 });
     }
 
     const res  = await fetch(targetUrl, {
