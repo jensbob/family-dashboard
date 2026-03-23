@@ -82,6 +82,7 @@ async function readKV(env) {
 
 async function refreshHistory(env) {
   const [stored, fresh] = await Promise.all([readKV(env), fetchLongHistory()]);
+  if (fresh.length === 0) return; // OREF API failed — keep existing cache intact
   const merged = mergeEvents(stored, fresh);
   await env.HISTORY_STORE.put(HISTORY_KEY, JSON.stringify(merged));
 }
