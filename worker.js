@@ -201,6 +201,11 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    await refreshHistory(env);
+    // OREF blocks Cloudflare scheduler IPs — self-trigger via HTTP to use a regular edge IP
+    if (env.WORKER_URL) {
+      await fetch(`${env.WORKER_URL}/debug/cron`);
+    } else {
+      await refreshHistory(env);
+    }
   },
 };
