@@ -86,9 +86,6 @@ async function writeKV(env, events) {
   await env.HISTORY_STORE.put(HISTORY_KEY, JSON.stringify({ lastWrite: Date.now(), events }));
 }
 
-// ── Cron: runs every 15 min ───────────────────────────────────────────────────
-// Calls the heavy endpoint, merges into KV, extends the rolling 12h window.
-
 async function refreshHistory(env) {
   const [{ events: stored }, fresh] = await Promise.all([readKV(env), fetchLongHistory()]);
   // Always log what the cron saw, even if we skip the write
@@ -208,11 +205,4 @@ export default {
     return new Response(await res.text(), { headers: CORS_HEADERS });
   },
 
-  async scheduled(event, env, ctx) {
-    // OREF blocks Cloudflare scheduler IPs — self-trigger via HTTP to use a regular edge IP
-    if (!env.WORKER_URL) throw new Error('WORKER_URL secret is not set');
-    const cronUrl = `${env.WORKER_URL}/debug/cron`;
-    const res = await fetch(cronUrl);
-    if (!res.ok) throw new Error(`fetch ${cronUrl} returned HTTP ${res.status}`);
-  },
 };
