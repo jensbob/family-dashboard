@@ -15,7 +15,7 @@ const CORS_HEADERS = {
 };
 
 const HISTORY_KEY    = 'events';
-const HISTORY_MAX_MS = 12 * 60 * 60 * 1000; // 12 hours
+const HISTORY_MAX_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Long history (~10h): called by cron only
 async function fetchLongHistory() {
@@ -97,6 +97,7 @@ async function refreshHistory(env) {
     freshCount: fresh.length,
     storedCount: stored.length,
     skipped: fresh.length === 0,
+    triggeredBy: 'scheduled',
   }));
   if (fresh.length === 0) return; // OREF API failed — keep existing cache intact
   const merged = mergeEvents(stored, fresh);
@@ -173,6 +174,13 @@ export default {
     if (url.pathname === '/debug/cron') {
       const { events: stored } = await readKV(env);
       const fresh = await fetchLongHistory();
+      await env.HISTORY_STORE.put('cron_log', JSON.stringify({
+        ts: Date.now(),
+        freshCount: fresh.length,
+        storedCount: stored.length,
+        skipped: fresh.length === 0,
+        triggeredBy: 'http',
+      }));
       if (fresh.length === 0) {
         return new Response(JSON.stringify({ result: 'skipped', reason: 'fetchLongHistory returned 0 events', storedCount: stored.length }), { headers: CORS_HEADERS });
       }
@@ -202,10 +210,9 @@ export default {
 
   async scheduled(event, env, ctx) {
     // OREF blocks Cloudflare scheduler IPs — self-trigger via HTTP to use a regular edge IP
-    if (env.WORKER_URL) {
-      await fetch(`${env.WORKER_URL}/debug/cron`);
-    } else {
-      await refreshHistory(env);
-    }
+    if (!env.WORKER_URL) throw new Error('WORKER_URL secret is not set');
+    const cronUrl = `${env.WORKER_URL}/debug/cron`;
+    const res = await fetch(cronUrl);
+    if (!res.ok) throw new Error(`fetch ${cronUrl} returned HTTP ${res.status}`);
   },
 };
