@@ -134,6 +134,15 @@
             font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.9);
             letter-spacing: 0.03em;
         }
+        #tt-play-btn {
+            font-size: 0.8rem; padding: 4px 10px; border-radius: 20px; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.8);
+            transition: all 0.15s; flex-shrink: 0;
+        }
+        #tt-play-btn.tt-playing {
+            background: rgba(255,255,255,0.15); color: white;
+        }
         #tt-live-btn {
             font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
             padding: 4px 10px; border-radius: 20px; cursor: pointer;
@@ -214,6 +223,7 @@
 
 <div id="time-travel-panel">
     <div id="tt-header">
+        <button id="tt-play-btn" onclick="toggleTTPlay()">&#9654;</button>
         <span id="tt-time-display">Now</span>
         <button id="tt-live-btn" onclick="goLive()">&#11044; LIVE</button>
     </div>
@@ -794,7 +804,58 @@
         }
     }
 
+    // ── Time travel playback ──
+    var _ttPlayState = null; // { startTs, fromVal, raf } or null
+
+    function _ttStep(now) {
+        if (!_ttPlayState) return;
+        var elapsed  = now - _ttPlayState.startTs;
+        var progress = Math.min(elapsed / 30000, 1); // 30s = full 12h
+        var val = Math.round(_ttPlayState.fromVal + progress * (1000 - _ttPlayState.fromVal));
+        var slider = document.getElementById('tt-slider');
+        slider.value = val;
+        updateTTDisplay(val);
+        if (val < 1000) {
+            var targetTs = Date.now() - HISTORY_WINDOW_MS + (val / 1000) * HISTORY_WINDOW_MS;
+            replayAtTime(targetTs);
+            _ttPlayState.raf = requestAnimationFrame(_ttStep);
+        } else {
+            _ttPlayState = null;
+            document.getElementById('tt-play-btn').innerHTML = '&#9654;';
+            document.getElementById('tt-play-btn').classList.remove('tt-playing');
+            goLive();
+        }
+    }
+
+    function toggleTTPlay() {
+        if (_ttPlayState) {
+            cancelAnimationFrame(_ttPlayState.raf);
+            _ttPlayState = null;
+            document.getElementById('tt-play-btn').innerHTML = '&#9654;';
+            document.getElementById('tt-play-btn').classList.remove('tt-playing');
+        } else {
+            var slider = document.getElementById('tt-slider');
+            var fromVal = parseInt(slider.value);
+            if (fromVal >= 1000) fromVal = 0;
+            // ensure panel is open
+            isTimeTravelling = true;
+            document.getElementById('time-travel-panel').style.display = 'flex';
+            document.getElementById('time-travel-btn').classList.add('tt-active');
+            slider.value = fromVal;
+            _ttPlayState = { startTs: performance.now(), fromVal: fromVal, raf: null };
+            document.getElementById('tt-play-btn').innerHTML = '&#9646;&#9646;';
+            document.getElementById('tt-play-btn').classList.add('tt-playing');
+            _ttPlayState.raf = requestAnimationFrame(_ttStep);
+        }
+    }
+
     function goLive() {
+        if (_ttPlayState) {
+            cancelAnimationFrame(_ttPlayState.raf);
+            _ttPlayState = null;
+            document.getElementById('tt-play-btn').innerHTML = '&#9654;';
+            document.getElementById('tt-play-btn').classList.remove('tt-playing');
+        }
         isTimeTravelling = false;
         document.getElementById('time-travel-panel').style.display = 'none';
         document.getElementById('time-travel-btn').classList.remove('tt-active');
