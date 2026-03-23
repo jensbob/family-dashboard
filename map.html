@@ -159,6 +159,20 @@
             background: rgba(60,80,120,0.9);
             border-color: rgba(120,160,255,0.4);
         }
+        #tt-slider-wrap {
+            position: relative; flex: 1; display: flex; align-items: center;
+        }
+        #tt-slider { width: 100%; }
+        #tt-markers {
+            position: absolute; left: 0; right: 0;
+            top: 50%; transform: translateY(-50%);
+            height: 10px; pointer-events: none;
+        }
+        .tt-mark {
+            position: absolute; width: 2px; height: 10px;
+            border-radius: 1px; transform: translateX(-50%);
+            opacity: 0.7;
+        }
 
         /* ── FALLBACK NOTICE ── */
         #fallback-notice {
@@ -205,7 +219,10 @@
     </div>
     <div id="tt-slider-row">
         <span class="tt-label">12h ago</span>
-        <input type="range" id="tt-slider" min="0" max="1000" value="1000" oninput="onTTSlider(this.value)">
+        <div id="tt-slider-wrap">
+            <input type="range" id="tt-slider" min="0" max="1000" value="1000" oninput="onTTSlider(this.value)">
+            <div id="tt-markers"></div>
+        </div>
         <span class="tt-label">Now</span>
     </div>
 </div>
@@ -701,10 +718,38 @@
                 if (ev.ts <= targetTs && (!best || ev.ts > best.ts)) best = ev;
             }
             if (best) {
-                var expiry = best.type === 'warning' ? WARNING_EXPIRE_MS : ALERT_EXPIRE_MS;
-                if (best.type !== 'allclear' && targetTs - best.ts <= expiry) {
+                var expiry = best.type === 'allclear' ? ALLCLEAR_EXPIRE_MS :
+                             best.type === 'warning'  ? WARNING_EXPIRE_MS  : ALERT_EXPIRE_MS;
+                if (targetTs - best.ts <= expiry) {
                     drawCity(cityHe, best.type, best.ts);
                 }
+            }
+        }
+    }
+
+    // Build colored tick marks on the time travel slider for each alert event
+    function buildTTMarkers() {
+        var container = document.getElementById('tt-markers');
+        if (!container) return;
+        container.innerHTML = '';
+        var now   = Date.now();
+        var start = now - HISTORY_WINDOW_MS;
+        var seen  = {};
+        for (var cityHe in cityHistory) {
+            var evs = cityHistory[cityHe];
+            for (var i = 0; i < evs.length; i++) {
+                var ev = evs[i];
+                if (ev.ts < start || ev.ts > now) continue;
+                var rounded = Math.round(ev.ts / 60000) * 60000; // deduplicate per minute
+                var key = ev.type + '|' + rounded;
+                if (seen[key]) continue;
+                seen[key] = true;
+                var pct = (ev.ts - start) / HISTORY_WINDOW_MS * 100;
+                var mark = document.createElement('div');
+                mark.className = 'tt-mark';
+                mark.style.left = pct + '%';
+                mark.style.background = COLORS[ev.type] ? COLORS[ev.type].fill : '#fff';
+                container.appendChild(mark);
             }
         }
     }
@@ -762,6 +807,7 @@
         await loadPolygons();
         if (!HIDE_CONTROLS) drawAllGhosts();
         await Promise.all([loadHistory(), focusMap(), loadCityNames()]);
+        buildTTMarkers();
         _mapInitialised = true;
         updateStatus();
         setInterval(poll, 3000);
