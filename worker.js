@@ -132,6 +132,40 @@ export default {
       return handleAlarmsHistory(env);
     }
 
+    // ── Debug endpoints ────────────────────────────────────────────────────────
+
+    // /debug/short — raw result from fetchShortHistory()
+    if (url.pathname === '/debug/short') {
+      const data = await fetchShortHistory();
+      return new Response(JSON.stringify({ count: data.length, events: data }), { headers: CORS_HEADERS });
+    }
+
+    // /debug/long — raw result from fetchLongHistory()
+    if (url.pathname === '/debug/long') {
+      const data = await fetchLongHistory();
+      return new Response(JSON.stringify({ count: data.length, events: data }), { headers: CORS_HEADERS });
+    }
+
+    // /debug/kv — what is currently stored in KV
+    if (url.pathname === '/debug/kv') {
+      const { lastWrite, events } = await readKV(env);
+      const newest = events[0] ? events[0].alertDate : null;
+      const oldest = events[events.length - 1] ? events[events.length - 1].alertDate : null;
+      return new Response(JSON.stringify({ lastWrite, lastWriteHuman: lastWrite ? new Date(lastWrite).toISOString() : null, count: events.length, newest, oldest }), { headers: CORS_HEADERS });
+    }
+
+    // /debug/cron — manually trigger refreshHistory and report what happened
+    if (url.pathname === '/debug/cron') {
+      const { events: stored } = await readKV(env);
+      const fresh = await fetchLongHistory();
+      if (fresh.length === 0) {
+        return new Response(JSON.stringify({ result: 'skipped', reason: 'fetchLongHistory returned 0 events', storedCount: stored.length }), { headers: CORS_HEADERS });
+      }
+      const merged = mergeEvents(stored, fresh);
+      await writeKV(env, merged);
+      return new Response(JSON.stringify({ result: 'written', freshCount: fresh.length, storedCount: stored.length, mergedCount: merged.length, newest: merged[0] ? merged[0].alertDate : null }), { headers: CORS_HEADERS });
+    }
+
     // Simple proxy routes
     let targetUrl, referer;
     if (url.pathname === '/history') {
