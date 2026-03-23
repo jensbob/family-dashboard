@@ -91,6 +91,13 @@ async function writeKV(env, events) {
 
 async function refreshHistory(env) {
   const [{ events: stored }, fresh] = await Promise.all([readKV(env), fetchLongHistory()]);
+  // Always log what the cron saw, even if we skip the write
+  await env.HISTORY_STORE.put('cron_log', JSON.stringify({
+    ts: Date.now(),
+    freshCount: fresh.length,
+    storedCount: stored.length,
+    skipped: fresh.length === 0,
+  }));
   if (fresh.length === 0) return; // OREF API failed — keep existing cache intact
   const merged = mergeEvents(stored, fresh);
   await writeKV(env, merged);
@@ -146,6 +153,14 @@ export default {
       return new Response(JSON.stringify({ count: data.length, events: data }), { headers: CORS_HEADERS });
     }
 
+    // /debug/cron-log — what the last scheduled cron run actually saw
+    if (url.pathname === '/debug/cron-log') {
+      const raw = await env.HISTORY_STORE.get('cron_log');
+      if (!raw) return new Response(JSON.stringify({ error: 'no cron log yet — deploy and wait for next cron run' }), { headers: CORS_HEADERS });
+      const log = JSON.parse(raw);
+      return new Response(JSON.stringify({ ...log, tsHuman: new Date(log.ts).toISOString() }), { headers: CORS_HEADERS });
+    }
+
     // /debug/kv — what is currently stored in KV
     if (url.pathname === '/debug/kv') {
       const { lastWrite, events } = await readKV(env);
@@ -186,6 +201,6 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(refreshHistory(env));
+    await refreshHistory(env);
   },
 };
