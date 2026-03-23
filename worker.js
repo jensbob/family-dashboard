@@ -24,11 +24,11 @@ async function fetchLongHistory() {
       'https://alerts-history.oref.org.il/Shared/Ajax/GetAlarmsHistory.aspx?lang=he&mode=1',
       { headers: OREF_HEADERS, cf: { cacheEverything: false, cacheTtl: 0, country: 'IL' } }
     );
-    if (!res.ok) return [];
+    if (!res.ok) return { events: [], error: `HTTP ${res.status}` };
     const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    return { events: Array.isArray(data) ? data : [], error: null };
   } catch (e) {
-    return [];
+    return { events: [], error: e.message };
   }
 }
 
@@ -48,8 +48,17 @@ async function fetchShortHistory() {
 }
 
 // Dedup key: always use alertDate|data so events from both APIs (with and without rid) match
+function normalizeAlertDate(ev) {
+  // Long history rounds alertDate seconds to :00 but has exact time in 'time'+'date' fields
+  if (ev.time && ev.date) {
+    const [d, m, y] = ev.date.split('.');
+    return `${y}-${m}-${d} ${ev.time}`;
+  }
+  return (ev.alertDate || '').replace('T', ' ');
+}
+
 function dedupKey(ev) {
-  return `${(ev.alertDate || '').replace('T', ' ')}|${ev.data}`;
+  return `${normalizeAlertDate(ev)}|${ev.data}`;
 }
 
 // Merge stored + fresh events: deduplicate, prune >12h, sort newest first
@@ -58,10 +67,10 @@ function mergeEvents(stored, fresh) {
   const seen   = new Map();
 
   for (const ev of [...stored, ...fresh]) {
-    const ts = new Date((ev.alertDate || '').replace('T', ' ')).getTime();
+    const ts = new Date(normalizeAlertDate(ev)).getTime();
     if (isNaN(ts) || ts < cutoff) continue;
     const key = dedupKey(ev);
-    if (!seen.has(key)) seen.set(key, { ...ev, alertDate: ev.alertDate.replace('T', ' ') });
+    if (!seen.has(key)) seen.set(key, { ...ev, alertDate: normalizeAlertDate(ev) });
   }
 
   return [...seen.values()].sort((a, b) => b.alertDate.localeCompare(a.alertDate));
@@ -87,16 +96,16 @@ async function writeKV(env, events) {
 }
 
 async function refreshHistory(env) {
-  const [{ events: stored }, fresh] = await Promise.all([readKV(env), fetchLongHistory()]);
-  // Always log what the cron saw, even if we skip the write
+  const [{ events: stored }, { events: fresh, error }] = await Promise.all([readKV(env), fetchLongHistory()]);
   await env.HISTORY_STORE.put('cron_log', JSON.stringify({
     ts: Date.now(),
     freshCount: fresh.length,
     storedCount: stored.length,
     skipped: fresh.length === 0,
+    error,
     triggeredBy: 'scheduled',
   }));
-  if (fresh.length === 0) return; // OREF API failed — keep existing cache intact
+  if (fresh.length === 0) return;
   const merged = mergeEvents(stored, fresh);
   await writeKV(env, merged);
 }
