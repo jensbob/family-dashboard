@@ -514,14 +514,14 @@
                     fillColor:   c.fill,
                     fillOpacity: 0.45,
                     color:       c.border,
-                    opacity:     0.85,
+                    opacity:     0.6,
                     weight:      2,
                 }).addTo(map)
                   .bindTooltip(() => heToEn[cityHe] || cityHe, {
                       sticky: true, className: 'city-tooltip', direction: 'top', offset: [0, -8]
                   })
-                  .on('mouseover', function() { this.setStyle({ weight: 4, opacity: 1 }); })
-                  .on('mouseout',  function() { this.setStyle({ weight: 2, opacity: 0.85 }); });
+                  .on('mouseover', function() { this.setStyle({ weight: 4, opacity: 0.9 }); })
+                  .on('mouseout',  function() { this.setStyle({ weight: 2, opacity: 0.6 }); });
                 layers.push(poly);
             }
         } else if (cityDots && cityDots[cityHe]) {
