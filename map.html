@@ -646,6 +646,8 @@
             // Support both { lastWrite, events } (new) and plain array (old)
             const events = Array.isArray(body) ? body : (body && Array.isArray(body.events) ? body.events : null);
             if (!events) return;
+            // Clear before repopulating to avoid duplicates on repeated calls
+            Object.keys(cityHistory).forEach(k => delete cityHistory[k]);
             if (body.lastWrite) console.log('[history] KV last written:', new Date(body.lastWrite).toISOString());
 
             const now = Date.now();
@@ -785,7 +787,7 @@
         val = parseInt(val);
         updateTTDisplay(val);
         if (val >= 1000) { goLive(); return; }
-        isTimeTravelling = true;
+        isTimeTravelling = true; map.keyboard.disable();
         var targetTs = Date.now() - HISTORY_WINDOW_MS + (val / 1000) * HISTORY_WINDOW_MS;
         replayAtTime(targetTs);
     }
@@ -796,7 +798,7 @@
         if (panel.style.display === 'flex') {
             goLive();
         } else {
-            isTimeTravelling = true;
+            isTimeTravelling = true; map.keyboard.disable();
             panel.style.display = 'flex';
             btn.classList.add('tt-active');
             document.getElementById('tt-slider').value = 1000;
@@ -838,7 +840,7 @@
             var fromVal = parseInt(slider.value);
             if (fromVal >= 1000) fromVal = 0;
             // ensure panel is open
-            isTimeTravelling = true;
+            isTimeTravelling = true; map.keyboard.disable();
             document.getElementById('time-travel-panel').style.display = 'flex';
             document.getElementById('time-travel-btn').classList.add('tt-active');
             slider.value = fromVal;
@@ -871,7 +873,7 @@
             document.getElementById('tt-play-btn').innerHTML = '&#9654;';
             document.getElementById('tt-play-btn').classList.remove('tt-playing');
         }
-        isTimeTravelling = false;
+        isTimeTravelling = false; map.keyboard.enable();
         document.getElementById('time-travel-panel').style.display = 'none';
         document.getElementById('time-travel-btn').classList.remove('tt-active');
         document.getElementById('tt-live-btn').classList.add('tt-is-live');
