@@ -555,55 +555,53 @@
         }
     }
 
-    // Recompute the correct display state for a city from its full history.
-    // Rules:
-    //   - Events before the most recent all-clear are cancelled
-    //   - Among remaining non-expired events, show the highest priority
-    //   - If none, show all-clear green for its 2min window, then nothing
-    function recomputeCity(cityHe) {
-        const now    = Date.now();
+    // Compute the highest-priority non-expired state for a city at a given time.
+    // Respects all-clear cancellation: events before the most recent all-clear are ignored.
+    // Returns { type, ts } or null.
+    function computeCityStateAt(cityHe, atTs) {
         const events = cityHistory[cityHe];
-        if (!events || events.length === 0) { removeCity(cityHe); return; }
+        if (!events || events.length === 0) return null;
 
-        // Find most recent all-clear (events are newest-first)
+        // Most recent all-clear at or before atTs (events are newest-first)
         let lastAllClearTs = 0;
         for (const ev of events) {
-            if (ev.type === 'allclear') { lastAllClearTs = ev.ts; break; }
+            if (ev.type === 'allclear' && ev.ts <= atTs) { lastAllClearTs = ev.ts; break; }
         }
 
         // Highest-priority non-expired event after the last all-clear
         let best = null;
         for (const ev of events) {
+            if (ev.ts > atTs) continue;                            // future event
             if (ev.type === 'allclear') continue;
-            if (ev.ts <= lastAllClearTs) continue; // cancelled
+            if (ev.ts <= lastAllClearTs) continue;                 // cancelled
             const expiry = ev.type === 'warning' ? WARNING_EXPIRE_MS : ALERT_EXPIRE_MS;
-            if (now - ev.ts > expiry) continue;
+            if (atTs - ev.ts > expiry) continue;                   // expired
             if (!best || PRIORITY[ev.type] > PRIORITY[best.type]) best = ev;
         }
 
-        let desired = null, desiredTs = 0;
-        if (best) {
-            desired = best.type; desiredTs = best.ts;
-        } else if (lastAllClearTs && now - lastAllClearTs <= ALLCLEAR_EXPIRE_MS) {
-            desired = 'allclear'; desiredTs = lastAllClearTs;
-        }
+        if (best) return { type: best.type, ts: best.ts };
+        if (lastAllClearTs && atTs - lastAllClearTs <= ALLCLEAR_EXPIRE_MS)
+            return { type: 'allclear', ts: lastAllClearTs };
+        return null;
+    }
 
+    function recomputeCity(cityHe) {
+        const desired = computeCityStateAt(cityHe, Date.now());
         const current = activeStates[cityHe];
         if (!desired) {
             if (current) removeCity(cityHe);
-        } else if (!current || current.type !== desired) {
-            // Force new state — clear first so drawCity's priority check doesn't block
+        } else if (!current || current.type !== desired.type) {
             if (current) { current.layers.forEach(l => map.removeLayer(l)); delete activeStates[cityHe]; }
-            drawCity(cityHe, desired, desiredTs);
+            drawCity(cityHe, desired.type, desired.ts);
         }
     }
 
-    // ── Recompute all cities every 15s to handle expiry and priority changes ──
+    // ── Recompute all cities every 5s to handle expiry and priority changes ──
     setInterval(() => {
         if (isTimeTravelling) return;
         for (const cityHe in cityHistory) recomputeCity(cityHe);
         updateStatus();
-    }, 15000);
+    }, 5000);
 
     function updateStatus() {}
 
@@ -659,7 +657,7 @@
                 cities.forEach(c => clearCity(c, title));
             } else {
                 const ts = Date.now();
-                cities.forEach(c => { recordEvent(c, type, title, ts); drawCity(c, type, ts); });
+                cities.forEach(c => { recordEvent(c, type, title, ts); recomputeCity(c); });
             }
             updateStatus();
         } catch(e) {}
@@ -728,24 +726,10 @@
     let isTimeTravelling = false;
 
     function replayAtTime(targetTs) {
-        // Clear current polygons
         Object.keys(activeStates).forEach(function(city) { removeCity(city); });
-        // For each city with history, find its most-recent event at/before targetTs
         for (var cityHe in cityHistory) {
-            var events = cityHistory[cityHe];
-            // Find the most recent event at/before targetTs (order-independent scan)
-            var best = null;
-            for (var i = 0; i < events.length; i++) {
-                var ev = events[i];
-                if (ev.ts <= targetTs && (!best || ev.ts > best.ts)) best = ev;
-            }
-            if (best) {
-                var expiry = best.type === 'allclear' ? ALLCLEAR_EXPIRE_MS :
-                             best.type === 'warning'  ? WARNING_EXPIRE_MS  : ALERT_EXPIRE_MS;
-                if (targetTs - best.ts <= expiry) {
-                    drawCity(cityHe, best.type, best.ts);
-                }
-            }
+            var desired = computeCityStateAt(cityHe, targetTs);
+            if (desired) drawCity(cityHe, desired.type, desired.ts);
         }
     }
 
