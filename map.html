@@ -542,18 +542,9 @@
         }
     }
 
-    // ── All-clear: flash green, remove after 12 s ──
     function clearCity(cityHe, title = 'האירוע הסתיים') {
         recordEvent(cityHe, 'allclear', title);
-        const existing = activeStates[cityHe];
-        if (!existing) return;
-        const c = COLORS.allclear;
-        existing.layers.forEach(l => {
-            if (l.setStyle) l.setStyle({ fillColor: c.fill, color: c.border });
-        });
-        existing.type  = 'allclear';
-        existing.since = Date.now();
-        setTimeout(() => removeCity(cityHe), ALLCLEAR_EXPIRE_MS);
+        recomputeCity(cityHe);
     }
 
     function removeCity(cityHe) {
@@ -564,16 +555,53 @@
         }
     }
 
-    // ── Auto-expire stale alerts ──
+    // Recompute the correct display state for a city from its full history.
+    // Rules:
+    //   - Events before the most recent all-clear are cancelled
+    //   - Among remaining non-expired events, show the highest priority
+    //   - If none, show all-clear green for its 2min window, then nothing
+    function recomputeCity(cityHe) {
+        const now    = Date.now();
+        const events = cityHistory[cityHe];
+        if (!events || events.length === 0) { removeCity(cityHe); return; }
+
+        // Find most recent all-clear (events are newest-first)
+        let lastAllClearTs = 0;
+        for (const ev of events) {
+            if (ev.type === 'allclear') { lastAllClearTs = ev.ts; break; }
+        }
+
+        // Highest-priority non-expired event after the last all-clear
+        let best = null;
+        for (const ev of events) {
+            if (ev.type === 'allclear') continue;
+            if (ev.ts <= lastAllClearTs) continue; // cancelled
+            const expiry = ev.type === 'warning' ? WARNING_EXPIRE_MS : ALERT_EXPIRE_MS;
+            if (now - ev.ts > expiry) continue;
+            if (!best || PRIORITY[ev.type] > PRIORITY[best.type]) best = ev;
+        }
+
+        let desired = null, desiredTs = 0;
+        if (best) {
+            desired = best.type; desiredTs = best.ts;
+        } else if (lastAllClearTs && now - lastAllClearTs <= ALLCLEAR_EXPIRE_MS) {
+            desired = 'allclear'; desiredTs = lastAllClearTs;
+        }
+
+        const current = activeStates[cityHe];
+        if (!desired) {
+            if (current) removeCity(cityHe);
+        } else if (!current || current.type !== desired) {
+            // Force new state — clear first so drawCity's priority check doesn't block
+            if (current) { current.layers.forEach(l => map.removeLayer(l)); delete activeStates[cityHe]; }
+            drawCity(cityHe, desired, desiredTs);
+        }
+    }
+
+    // ── Recompute all cities every 15s to handle expiry and priority changes ──
     setInterval(() => {
         if (isTimeTravelling) return;
-        const now = Date.now();
-        for (const [city, state] of Object.entries(activeStates)) {
-            const expiry = state.type === 'warning' ? WARNING_EXPIRE_MS : ALERT_EXPIRE_MS;
-            if (state.type !== 'allclear' && now - state.since > expiry) {
-                removeCity(city);
-            }
-        }
+        for (const cityHe in cityHistory) recomputeCity(cityHe);
         updateStatus();
     }, 15000);
 
@@ -656,33 +684,18 @@
             // Sort oldest→newest so later events win per city
             events.sort((a, b) => a.alertDate < b.alertDate ? -1 : 1);
 
-            // Determine final polygon state per city (1h window) AND populate full history (12h)
-            const polygonCutoff = now - ALERT_EXPIRE_MS;
-            const cityState = {}; // cityHe → { type, ts }
+            // Populate cityHistory for all events in the display window
             for (const ev of events) {
                 const ts = new Date(ev.alertDate.replace(' ', 'T')).getTime();
                 if (isNaN(ts) || ts < cutoff) continue;
                 const title = ev.title || ev.category_desc || '';
                 const type = classifyLive(String(ev.category), title);
                 if (!type) continue;
-                // Only track polygon state for events within the 1h display window
-                if (ts >= polygonCutoff) cityState[ev.data] = { type, ts };
                 recordEvent(ev.data, type, title, ts);
             }
 
-            // Draw each city in its final state
-            for (const [cityHe, { type, ts }] of Object.entries(cityState)) {
-                if (type === 'allclear') {
-                    // Only show all-clear if still within its short display window
-                    const remaining = ALLCLEAR_EXPIRE_MS - (now - ts);
-                    if (remaining > 0) {
-                        drawCity(cityHe, 'allclear', ts);
-                        setTimeout(() => removeCity(cityHe), remaining);
-                    }
-                } else {
-                    drawCity(cityHe, type, ts);
-                }
-            }
+            // Recompute display state for each city from its full history
+            for (const cityHe in cityHistory) recomputeCity(cityHe);
             updateStatus();
         } catch(e) { console.warn('[history]', e); }
     }
