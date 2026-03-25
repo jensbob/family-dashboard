@@ -497,10 +497,7 @@
         const existing = activeStates[cityHe];
 
         // Don't downgrade a higher-priority alert
-        if (existing && PRIORITY[existing.type] > PRIORITY[type]) {
-            existing.since = since; // refresh timer
-            return;
-        }
+        if (existing && PRIORITY[existing.type] > PRIORITY[type]) return;
 
         // Remove previous layers for this city
         if (existing) existing.layers.forEach(l => map.removeLayer(l));
