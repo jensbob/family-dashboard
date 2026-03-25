@@ -431,6 +431,9 @@
 
     function recordEvent(cityHe, type, title, ts = Date.now()) {
         if (!cityHistory[cityHe]) cityHistory[cityHe] = [];
+        // Dedup: skip if same type already recorded within 60s
+        const last = cityHistory[cityHe][0];
+        if (last && last.type === type && ts - last.ts < 60000) return;
         cityHistory[cityHe].unshift({ type, title, ts });
         if (cityHistory[cityHe].length > 20) cityHistory[cityHe].length = 20;
     }
@@ -669,9 +672,6 @@
                 if (ts >= polygonCutoff) cityState[ev.data] = { type, ts };
                 recordEvent(ev.data, type, title, ts);
             }
-            // recordEvent unshifts (newest first), but we processed oldest→newest,
-            // so reverse each city's log to restore newest-first order
-            for (const arr of Object.values(cityHistory)) arr.reverse();
 
             // Draw each city in its final state
             for (const [cityHe, { type, ts }] of Object.entries(cityState)) {
