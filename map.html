@@ -612,8 +612,8 @@
 
     function classifyLive(cat, title) {
         const t = (title || '').replace(/\s+/g, ' ').trim();
-        if (t === TITLE_ALLCLEAR)   return 'allclear';
-        if (t === TITLE_PREWARNING) return 'warning';
+        if (t === TITLE_ALLCLEAR || cat === '13')              return 'allclear';
+        if (t.startsWith('בדקות הקרובות') || cat === '14')    return 'warning';
         const threats = { '1':'alert', '2':'drone', '3':'alert', '4':'alert', '6':'alert', '7':'alert' };
         if (threats[cat]) return threats[cat];
         if (cat === '10' && t.includes('היכנסו')) return 'alert';
