@@ -128,8 +128,8 @@ async function handleAlarmsHistory(env) {
   // Normal path: KV (deep history) + short history (last ~1h, fills cron gap)
   const recent = await fetchShortHistory();
   const merged = mergeEvents(stored, recent);
-  // Persist back to KV if short history added new events
-  if (merged.length > stored.length) {
+  // Persist back if new events were added OR old events were pruned
+  if (merged.length !== stored.length) {
     await writeKV(env, merged);
     return new Response(JSON.stringify({ lastWrite: Date.now(), events: merged }), { headers: CORS_HEADERS });
   }
